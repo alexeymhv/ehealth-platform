@@ -1,0 +1,38 @@
+{
+  "name": "adf-widget-bpmspo",
+  "version": "0.1.0",
+  "main": "dist/adf-widget-bpmspo.js",
+  "ignore": [
+    "bower.json",
+    ".bowerrc",
+    ".jshintrc",
+    ".gitignore",
+    "gulpfile.js",
+    "node_modules",
+    "package.json",
+    "components",
+    "src"
+  ],
+  "keywords": [
+    "dashboard",
+    "widget",
+    "adf",
+    "adf-widget"
+  ],
+  "description": "This widget shows your pulse and SPO2 concentration in real time",
+  "dependencies": {
+    "angular-dashboard-framework": ">=0.10"
+  },
+  "devDependencies": {
+    "angular-local-storage": ">=0.2"
+  },
+  "overrides": {
+    "bootstrap" : {
+      "main": [
+        "less/bootstrap.less",
+        "dist/css/bootstrap.css",
+        "dist/js/bootstrap.js"
+      ]
+    }
+  }
+}
