@@ -25,6 +25,8 @@ app.factory('socket', function(){
 app.controller('rpmController', ["$scope", "$interval", "socket", function($scope, $interval, socket){
   var rpm = this;
 
+  socket.emit('getRpmData', {data: 'Give me some respiratory rate'});
+
   //TODO - the breathe frequency should be changing dynamically
   rpm.frequency = "Loading...";
 
@@ -115,5 +117,5 @@ app.controller('rpmController', ["$scope", "$interval", "socket", function($scop
 
 }]);
 
-angular.module("adf.widget.rpmsensor").run(["$templateCache", function($templateCache) {$templateCache.put("{widgetsPath}/rpmsensor/src/edit.html","<form role=form><div class=form-group><label for=sample>Sample</label> <input type=text class=form-control id=sample ng-model=config.sample placeholder=\"Enter sample\"></div></form>");
+angular.module("adf.widget.rpmsensor").run(["$templateCache", function($templateCache) {$templateCache.put("{widgetsPath}/rpmsensor/src/edit.html","<form role=form><div class=form-group></div></form>");
 $templateCache.put("{widgetsPath}/rpmsensor/src/view.html","<div ng-controller=rpmController><div ng-if=!chartConfig><h1>Loading...</h1></div><div ng-if=chartConfig><highchart id=chart1 config=chartConfig></highchart></div><div><h3>Frequency: {{rpm.frequency}}</h3></div></div>");}]);})(window);

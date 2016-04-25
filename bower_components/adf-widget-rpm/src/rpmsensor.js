@@ -24,6 +24,8 @@ app.factory('socket', function(){
 app.controller('rpmController', function($scope, $interval, socket){
   var rpm = this;
 
+  socket.emit('getRpmData', {data: 'Give me some respiratory rate'});
+
   //TODO - the breathe frequency should be changing dynamically
   rpm.frequency = "Loading...";
 

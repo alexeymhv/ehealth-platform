@@ -55,16 +55,20 @@ var bpmCounter = 0;
 server = LaunchHTTPServer();
 server.listen(3000, '127.0.1.1');
 var listener = io.listen(server);
+listener.sockets.setMaxListeners(0);
 
 connection.on('open', function(){
     console.log("Connected...");
 });
 
+/**Timers**/
 var wait = 0;
-
 var seconds = 0;
-
 var bpmTimer = 0;
+
+var bpmspoWidgetIsConnected = false;
+var rpmWidgetIsConnected = false;
+var bpmChartWidgetIsConnected = false;
 
 var canstart = false;
 
@@ -75,13 +79,28 @@ var timerId = setInterval(function(){
     }
 }, 1000);
 
-
-
 connection.on('data', function(data){
     if(wait < 10)
         wait++;
     else{
         canstart = true;
+
+        listener.sockets.on('connection', function(socket){
+
+            socket.setMaxListeners(0);
+
+            socket.on ('getBpmSpoData', function (data) {
+                bpmspoWidgetIsConnected = true;
+            });
+
+            socket.on('getRpmData', function (data) {
+                rpmWidgetIsConnected = true;
+            });
+
+            socket.on('getBpmChartData', function (data){
+                bpmChartWidgetIsConnected = true;
+            });
+        });
 
         var pulseData = GetPulseDataArray(data)[0] + "|" + GetPulseDataArray(data)[1];
 
@@ -145,8 +164,8 @@ function InitHBaseTables(pathToOpenTSDB){
 function GetPulseDataArray(data){
     var arr = data.split("|");
     var pulse = new Array(2);
-    pulse[0] = arr[4];
-    pulse[1] = arr[5];
+    pulse[0] = arr[3];
+    pulse[1] = arr[4];
     return pulse;
 }
 

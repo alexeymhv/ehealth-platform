@@ -17,13 +17,18 @@ app.config(["dashboardProvider", function(dashboardProvider){
   }]);
 
 app.factory('socket', function(){
-  var socket = io.connect('http://127.0.1.1:3000')
+  var socket = io.connect('http://127.0.1.1:3000');
+
   return socket;
 });
 
 
 app.controller('bpmController', ["$scope", "$interval", "socket", function($scope, $interval, socket){
   var bpm = this;
+
+  socket.emit('getBpmSpoData', {data: 'Give me some pulse'});
+
+  //socket.emit('getBpmSpoData', {hello: 'world'});
 
   //$scope.msgs = [];
   //

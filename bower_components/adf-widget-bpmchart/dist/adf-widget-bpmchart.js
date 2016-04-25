@@ -25,25 +25,26 @@ app.factory('socket', function(){
 app.controller('bpmchController', ["$scope", "$interval", "socket", function($scope, $interval, socket) {
   var bpmch = this;
 
+  socket.emit('getBpmChartData', {data: 'Give me some pulse chart'});
+
   socket.on('bpmchart data', function (brData) {
     var dataArray = new Array();
 
     for(var i=0;i<brData.length; i++){
       if(i%2 != 0) {
-        dataArray.push({x: brData[i-1], y: parseFloat(brData[i])});
-        console.log(brData[i-1]);
+        var timestamp = parseInt(brData[i-1]/1000)*1000;
+        dataArray.push({x: timestamp, y: parseFloat(brData[i])});
+        console.log(timestamp);
       }
     }
 
     $scope.chartConfig = {
       options: {
-        global: {
-          useUTC: false
-        },
         chart: {
           type: 'spline',
           animation: true,
-          zoomType: 'x'
+          zoomType: 'x',
+          renderTo: 'container'
         },
         plotOptions: {
           spline: {
@@ -61,12 +62,15 @@ app.controller('bpmchController', ["$scope", "$interval", "socket", function($sc
           }
         }
       },
+      global: {
+        useUTC: false
+      },
       title: {
         text: 'Pulse Chart'
       },
       xAxis: {
         type: 'datetime',
-        tickPixelInterval: 100,
+        tickPixelInterval: 100
       },
       yAxis: {
         title: {
@@ -87,5 +91,5 @@ app.controller('bpmchController', ["$scope", "$interval", "socket", function($sc
   });
 }]);
 
-angular.module("adf.widget.bpmchart").run(["$templateCache", function($templateCache) {$templateCache.put("{widgetsPath}/bpmchart/src/edit.html","<form role=form><div class=form-group><label for=sample>Sample</label> <input type=text class=form-control id=sample ng-model=config.sample placeholder=\"Enter sample\"></div></form>");
+angular.module("adf.widget.bpmchart").run(["$templateCache", function($templateCache) {$templateCache.put("{widgetsPath}/bpmchart/src/edit.html","<form role=form><div class=form-group></div></form>");
 $templateCache.put("{widgetsPath}/bpmchart/src/view.html","<div ng-controller=bpmchController><div ng-if=!chartConfig><h1>Loading...</h1></div><div ng-if=chartConfig><highchart id=chart1 config=chartConfig></highchart></div></div>");}]);})(window);
