@@ -52,4 +52,4 @@ app.controller('bpmController', ["$scope", "$interval", "socket", function($scop
 }]);
 
 angular.module("adf.widget.bpmspo").run(["$templateCache", function($templateCache) {$templateCache.put("{widgetsPath}/bpmspo/src/edit.html","<form role=form><div class=form-group></div></form>");
-$templateCache.put("{widgetsPath}/bpmspo/src/view.html","<link href=../css-bpmspo/style.css rel=stylesheet><div><h1>Pulse Oximeter <img style=\"width:48px; height:48px; vertical-align:middle;\" class=objblink id=imgnow src=../images-bpmspo/heart_beat1.png alt=Heart></h1><div ng-controller=bpmController><h3>Pulse: {{bpm.pulse}}</h3><h3>SPO2: {{bpm.spo2}}</h3></div></div>");}]);})(window);
+$templateCache.put("{widgetsPath}/bpmspo/src/view.html","<link href=../css-bpmspo/style.css rel=stylesheet><div><img style=\"width:48px; height:48px; vertical-align:middle;\" class=objblink id=imgnow src=../images-bpmspo/heart_beat1.png alt=Heart><div ng-controller=bpmController><h3>Pulse: {{bpm.pulse}}</h3><h3>SPO2: {{bpm.spo2}}</h3></div></div>");}]);})(window);

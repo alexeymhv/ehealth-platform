@@ -102,47 +102,13 @@ connection.on('data', function(data){
             });
         });
 
-        var pulseData = GetPulseDataArray(data)[0] + "|" + GetPulseDataArray(data)[1];
-
-        rpmArray[rpmCounter] = parseFloat(GetPositionArray(data)[2]);
-        bpmArray[bpmCounter] = GetPulseDataArray(data)[0];
+        SendPulseSpoData(bpmspoWidgetIsConnected, data);
+        SendRespiratoryRateData(rpmWidgetIsConnected, data);
+        SendBpmChartData(bpmChartWidgetIsConnected, data);
 
         //console.log("Counter => " + rpmCounter);
         //console.log("Seconds => " + seconds + "\n");
 
-        rpmCounter++;
-        bpmCounter++;
-
-        if(rpmCounter == 1024){
-            rpmCounter = 0;
-
-            seconds = 0;
-
-            var phasors = fft(rpmArray);
-            var frequencies = fftUtil.fftFreq(phasors, 73);
-            var magnitudes = fftUtil.fftMag(phasors);
-            var both = frequencies.map(function (f, ix) {
-                return {frequency: f, magnitude: magnitudes[ix]};
-            });
-
-            //console.log(both);
-
-            listener.sockets.emit('breathe data', both);
-            rpmArray.length = 0;
-        }
-
-        if(bpmCounter == 73){
-            bpmCounter = 0;
-            var average_pulse = GetAverageValue(bpmArray);
-            WritePulseToDB(average_pulse);
-        }
-
-        if(bpmTimer == 1){
-            bpmTimer = 0;
-            FetchPulseMetricsFromDB();
-        }
-
-        listener.sockets.emit('pulse data', pulseData);
     }
 });
 
@@ -249,7 +215,58 @@ function FetchPulseMetricsFromDB() {
             listener.sockets.emit('bpmchart data', valArr);
         }
     });
+}
 
+function SendPulseSpoData(isConnected, data) {
+    if(isConnected){
+        var pulseData = GetPulseDataArray(data)[0] + "|" + GetPulseDataArray(data)[1];
+        listener.sockets.emit('pulse data', pulseData);
+    }
+    else
+        return;
+}
+
+function SendRespiratoryRateData(isConnected, data){
+    if(isConnected){
+        rpmArray[rpmCounter] = parseFloat(GetPositionArray(data)[2]);
+        rpmCounter++;
+        if(rpmCounter == 1024){
+            rpmCounter = 0;
+
+            seconds = 0;
+
+            var phasors = fft(rpmArray);
+            var frequencies = fftUtil.fftFreq(phasors, 73);
+            var magnitudes = fftUtil.fftMag(phasors);
+            var both = frequencies.map(function (f, ix) {
+                return {frequency: f, magnitude: magnitudes[ix]};
+            });
+
+            listener.sockets.emit('breathe data', both);
+            rpmArray.length = 0;
+        }
+    }
+    else
+        return;
+}
+
+function SendBpmChartData(isConnected, data) {
+    if(isConnected) {
+        bpmArray[bpmCounter] = GetPulseDataArray(data)[0];
+        bpmCounter++;
+        if (bpmCounter == 73) {
+            bpmCounter = 0;
+            var average_pulse = GetAverageValue(bpmArray);
+            WritePulseToDB(average_pulse);
+        }
+
+        if (bpmTimer == 1) {
+            bpmTimer = 0;
+            FetchPulseMetricsFromDB();
+        }
+    }
+    else
+        return;
 }
 
 function convertTime(timestamp) {
