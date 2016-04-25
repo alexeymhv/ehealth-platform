@@ -1,6 +1,13 @@
 /**
  * Created by aleksejs on 16.20.3.
  */
+var PULSOMETER_WIDGET_CONNECTED_INFO = "Pulsometer widget connected to platform";
+var RESPIRATORY_RATE_WIDGET_CONNECTED_INFO = "Respiratory rate widget connected to platform";
+var PULSE_CHART_WIDGET_CONNECTED_INFO = "Pulse chart widget connected to platform";
+var PULSE_DATA_TO_DB_INFO = "Pulse data was written to database";
+var ACCELEROMETER_DATA_TO_DB_INFO = "Accelerometer data was written to database";
+
+
 var http = require('http');
 var url = require('url');
 var fs = require('fs');
@@ -58,13 +65,11 @@ var listener = io.listen(server);
 listener.sockets.setMaxListeners(0);
 
 connection.on('open', function(){
-    console.log("Connected...");
+    console.log("***Connected to serial port***");
 });
 
 /**Timers**/
 var wait = 0;
-var seconds = 0;
-var bpmTimer = 0;
 
 var bpmspoWidgetIsConnected = false;
 var rpmWidgetIsConnected = false;
@@ -74,8 +79,7 @@ var canstart = false;
 
 var timerId = setInterval(function(){
     if(canstart) {
-        seconds++;
-        bpmTimer++;
+        FetchPulseMetricsFromDB(bpmChartWidgetIsConnected);
     }
 }, 1000);
 
@@ -90,25 +94,30 @@ connection.on('data', function(data){
             socket.setMaxListeners(0);
 
             socket.on ('getBpmSpoData', function (data) {
-                bpmspoWidgetIsConnected = true;
+                if(!bpmspoWidgetIsConnected){
+                    bpmspoWidgetIsConnected = true;
+                    WriteServerLogs("INFO", PULSOMETER_WIDGET_CONNECTED_INFO);
+                }
             });
 
             socket.on('getRpmData', function (data) {
-                rpmWidgetIsConnected = true;
+                if(!rpmWidgetIsConnected){
+                    rpmWidgetIsConnected = true;
+                    WriteServerLogs("INFO", RESPIRATORY_RATE_WIDGET_CONNECTED_INFO);
+                }
             });
 
             socket.on('getBpmChartData', function (data){
-                bpmChartWidgetIsConnected = true;
+                if(!bpmChartWidgetIsConnected){
+                    bpmChartWidgetIsConnected = true;
+                    WriteServerLogs("INFO", PULSE_CHART_WIDGET_CONNECTED_INFO);
+                }
             });
         });
 
         SendPulseSpoData(bpmspoWidgetIsConnected, data);
         SendRespiratoryRateData(rpmWidgetIsConnected, data);
         SendBpmChartData(bpmChartWidgetIsConnected, data);
-
-        //console.log("Counter => " + rpmCounter);
-        //console.log("Seconds => " + seconds + "\n");
-
     }
 });
 
@@ -154,7 +163,6 @@ function GetPositionArray(data){
 }
 
 function WritePulseToDB(data) {
-    console.log(data);
     var value = '';
     var now = require('date-now');
 
@@ -165,7 +173,7 @@ function WritePulseToDB(data) {
     value += 'tag=pulse\n';
 
     socket.write(value, function ack() {
-        console.log('...data written...');
+        WriteServerLogs("INFO", PULSE_DATA_TO_DB_INFO);
     });
 }
 
@@ -180,41 +188,42 @@ function WritePosToDB(data) {
     value += 'tag=axis_z\n';
 
     socket.write(value, function ack() {
-        console.log('...data written...');
+        WriteServerLogs("INFO", ACCELEROMETER_DATA_TO_DB_INFO);
     });
 }
 
-function FetchPulseMetricsFromDB() {
-    var valArr = new Array();
+function FetchPulseMetricsFromDB(isConnected) {
+    if(isConnected){
+        var valArr = new Array();
 
-    var mQuery = opentsdb.mquery();
-    mQuery.aggregator( 'none' );
-    mQuery.tags( 'tag', 'pulse' );
-    mQuery.metric( 'pulsometer.data' );
+        var mQuery = opentsdb.mquery();
+        mQuery.aggregator( 'none' );
+        mQuery.tags( 'tag', 'pulse' );
+        mQuery.metric( 'pulsometer.data' );
 
-    var date = new Date();
-    var current_time = parseInt(date.getTime()/1000);
+        var date = new Date();
+        var current_time = parseInt(date.getTime()/1000);
 
-    dbClient.start( convertTime(current_time-10) );
-    console.log(convertTime(current_time-10))
-    dbClient.end( convertTime(current_time) );
-    console.log(convertTime(current_time))
-    dbClient.queries(mQuery);
+        dbClient.start( convertTime(current_time-10) );
+        dbClient.end( convertTime(current_time) );
+        dbClient.queries(mQuery);
 
-    dbClient.get( function onData(error, data){
-        if(error){
-            console.error(JSON.stringify(error));
-            return;
-        }
-        else{
-            for(i=0; i<data[0].dps.length; i++){
-                valArr.push(data[0].dps[i][0].toString());
-                valArr.push(data[0].dps[i][1].toString());
+        dbClient.get( function onData(error, data){
+            if(error){
+                console.error(JSON.stringify(error));
+                return;
             }
-            console.log(valArr.length);
-            listener.sockets.emit('bpmchart data', valArr);
-        }
-    });
+            else{
+                for(i=0; i<data[0].dps.length; i++){
+                    valArr.push(data[0].dps[i][0].toString());
+                    valArr.push(data[0].dps[i][1].toString());
+                }
+                listener.sockets.emit('bpmchart data', valArr);
+            }
+        });
+    }
+    else
+        return;
 }
 
 function SendPulseSpoData(isConnected, data) {
@@ -226,14 +235,20 @@ function SendPulseSpoData(isConnected, data) {
         return;
 }
 
+//TODO Total Acceleration (sqrt(x^2+y^2+z^2)) Widget
+//Videjais aritmetiskais par 1 sekunde
+//TODO Conductance and Resistance Chart. Conductance to Ohms (/1000).
+//Divi Y asi.
+//TODO EEG-SMT Widget
+//TODO Pacienta Ielogosanas (PID/ Katram sava ierice)
+//TODO MySQL DB - Pacienti, Ierices(Cik sensoru un t.t.), Organization
+
 function SendRespiratoryRateData(isConnected, data){
     if(isConnected){
         rpmArray[rpmCounter] = parseFloat(GetPositionArray(data)[2]);
         rpmCounter++;
         if(rpmCounter == 1024){
             rpmCounter = 0;
-
-            seconds = 0;
 
             var phasors = fft(rpmArray);
             var frequencies = fftUtil.fftFreq(phasors, 73);
@@ -255,18 +270,22 @@ function SendBpmChartData(isConnected, data) {
         bpmArray[bpmCounter] = GetPulseDataArray(data)[0];
         bpmCounter++;
         if (bpmCounter == 73) {
+            WritePulseToDB(bpmArray[bpmCounter-1]);
             bpmCounter = 0;
-            var average_pulse = GetAverageValue(bpmArray);
-            WritePulseToDB(average_pulse);
-        }
-
-        if (bpmTimer == 1) {
-            bpmTimer = 0;
-            FetchPulseMetricsFromDB();
+            bpmArray.length = 0;
         }
     }
     else
         return;
+}
+
+function WriteServerLogs(type, msg) {
+    console.log(GetCurrentTime() + "  " + type + "  " +  msg);
+}
+
+function GetCurrentTime() {
+    var date = new Date();
+    return convertTime(date.getTime()/1000);
 }
 
 function convertTime(timestamp) {
