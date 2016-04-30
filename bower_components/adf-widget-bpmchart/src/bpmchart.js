@@ -73,14 +73,14 @@ app.controller('bpmchController', function($scope, $interval, socket) {
       },
       yAxis: {
         title: {
-          text: 'BPM'
+          text: 'Pulse'
         },
         tickPixelInterval: 10,
         max: 90,
         min: 40
       },
       series: [{
-        name: 'BPM',
+        name: 'Pulse / 5 min',
         data: dataArray
       }]
     };

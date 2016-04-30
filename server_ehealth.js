@@ -70,6 +70,8 @@ connection.on('open', function(){
 
 /**Timers**/
 var wait = 0;
+var timePeriod = 10;
+var timePeriodHelper = 0;
 
 var bpmspoWidgetIsConnected = false;
 var rpmWidgetIsConnected = false;
@@ -78,8 +80,15 @@ var bpmChartWidgetIsConnected = false;
 var canstart = false;
 
 var timerId = setInterval(function(){
-    if(canstart) {
-        FetchPulseMetricsFromDB(bpmChartWidgetIsConnected);
+    if(canstart && bpmChartWidgetIsConnected) {
+        //--Shows pulse history for last 5 minutes (300 sec)--//
+        FetchPulseMetricsFromDB(bpmChartWidgetIsConnected, timePeriod);
+
+        if(timePeriod != 300 && timePeriodHelper == timePeriod)
+            timePeriod += 10;
+
+        if(timePeriodHelper != 300)
+            timePeriodHelper++;
     }
 }, 1000);
 
@@ -192,7 +201,7 @@ function WritePosToDB(data) {
     });
 }
 
-function FetchPulseMetricsFromDB(isConnected) {
+function FetchPulseMetricsFromDB(isConnected, timePeriod) {
     if(isConnected){
         var valArr = new Array();
 
@@ -204,7 +213,7 @@ function FetchPulseMetricsFromDB(isConnected) {
         var date = new Date();
         var current_time = parseInt(date.getTime()/1000);
 
-        dbClient.start( convertTime(current_time-10) );
+        dbClient.start( convertTime(current_time-timePeriod) );
         dbClient.end( convertTime(current_time) );
         dbClient.queries(mQuery);
 
@@ -221,6 +230,7 @@ function FetchPulseMetricsFromDB(isConnected) {
                 listener.sockets.emit('bpmchart data', valArr);
             }
         });
+
     }
     else
         return;
