@@ -4,6 +4,7 @@
 var PULSOMETER_WIDGET_CONNECTED_INFO = "Pulsometer widget connected to platform";
 var RESPIRATORY_RATE_WIDGET_CONNECTED_INFO = "Respiratory rate widget connected to platform";
 var PULSE_CHART_WIDGET_CONNECTED_INFO = "Pulse chart widget connected to platform";
+var RPM_ACCEL_WIDGET_CONNECTED_INFO = "Respiratory acceleration widget connected to platform";
 var PULSE_DATA_TO_DB_INFO = "Pulse data was written to database";
 var ACCELEROMETER_DATA_TO_DB_INFO = "Accelerometer data was written to database";
 
@@ -54,6 +55,9 @@ var rpmArray = new Array();
 var rpmCounter = 0;
 var time = 0;
 
+var rpmAccelArray = new Array();
+var rpmAccelCounter = 0;
+
 //**Initialising array for pulse data**/
 var bpmArray = new Array();
 var bpmCounter = 0;
@@ -70,25 +74,41 @@ connection.on('open', function(){
 
 /**Timers**/
 var wait = 0;
-var timePeriod = 10;
-var timePeriodHelper = 0;
+var timePeriod_pulse = 10;
+var timePeriodHelper_pulse = 0;
+var timePeriod_accel = 10;
+var timePeriodHelper_accel = 0;
 
 var bpmspoWidgetIsConnected = false;
 var rpmWidgetIsConnected = false;
 var bpmChartWidgetIsConnected = false;
+var rpmAccelWidgetIsConnected = false;
 
 var canstart = false;
 
 var timerId = setInterval(function(){
-    if(canstart && bpmChartWidgetIsConnected) {
-        //--Shows pulse history for last 5 minutes (300 sec)--//
-        FetchPulseMetricsFromDB(bpmChartWidgetIsConnected, timePeriod);
+    if(canstart) {
+        if(bpmChartWidgetIsConnected){
+            //--Shows pulse history for last 5 minutes (300 sec)--//
+            FetchPulseMetricsFromDB(bpmChartWidgetIsConnected, timePeriod_pulse);
 
-        if(timePeriod != 300 && timePeriodHelper == timePeriod)
-            timePeriod += 10;
+            if(timePeriod_pulse != 300 && timePeriodHelper_pulse == timePeriod_pulse)
+                timePeriod_pulse += 10;
 
-        if(timePeriodHelper != 300)
-            timePeriodHelper++;
+            if(timePeriodHelper_pulse != 300)
+                timePeriodHelper_pulse++;
+        }
+
+        if(rpmAccelWidgetIsConnected) {
+            //--Shows pulse history for last 5 minutes (300 sec)--//
+            FetchRespAccelMetricsFromDB(rpmAccelWidgetIsConnected, timePeriod_accel);
+
+            if(timePeriod_accel != 300 && timePeriodHelper_accel == timePeriod_accel)
+                timePeriod_accel += 10;
+
+            if(timePeriodHelper_accel != 300)
+                timePeriodHelper_accel++;
+        }
     }
 }, 1000);
 
@@ -122,11 +142,19 @@ connection.on('data', function(data){
                     WriteServerLogs("INFO", PULSE_CHART_WIDGET_CONNECTED_INFO);
                 }
             });
+
+            socket.on('getRpmAccelData', function(data) {
+                if(!rpmAccelWidgetIsConnected){
+                    rpmAccelWidgetIsConnected = true;
+                    WriteServerLogs("INFO", RPM_ACCEL_WIDGET_CONNECTED_INFO);
+                }
+            });
         });
 
         SendPulseSpoData(bpmspoWidgetIsConnected, data);
         SendRespiratoryRateData(rpmWidgetIsConnected, data);
         SendBpmChartData(bpmChartWidgetIsConnected, data);
+        SendRespiratoryAccelData(rpmAccelWidgetIsConnected, data);
     }
 });
 
@@ -186,19 +214,58 @@ function WritePulseToDB(data) {
     });
 }
 
-function WritePosToDB(data) {
+function WriteAxisValueToDB(axis, data) {
     var value = '';
     var now = require('date-now');
 
     value += 'put ';
     value += ACCELEROMETER_DB_NAME + ' ';
     value += parseInt(Date.now()) + ' ';
-    value += parseFloat(data[2]) + ' ';
-    value += 'tag=axis_z\n';
+
+    switch (axis) {
+        case 'x':
+            value += parseFloat(data[0]) + ' ';
+            value += 'tag=axis_x\n';
+            break;
+        case 'y':
+            value += parseFloat(data[1]) + ' ';
+            value += 'tag=axis_y\n';
+            break;
+        case 'z':
+            value += parseFloat(data[2]) + ' ';
+            value += 'tag=axis_z\n';
+            break;
+    }
 
     socket.write(value, function ack() {
         WriteServerLogs("INFO", ACCELEROMETER_DATA_TO_DB_INFO);
     });
+}
+
+function WriteRespiratoryAccelToDB(data) {
+    var value = '';
+    var now = require('date-now');
+    var averageAccel = 0;
+
+    value += 'put ';
+    value += ACCELEROMETER_DB_NAME + ' ';
+    value += parseInt(Date.now()) + ' ';
+
+    for(var i=0; i<data.length; i++){
+        averageAccel += GetAcceleration(data[i][0], data[i][1], data[i][2]);
+    }
+    averageAccel /= data.length;
+
+    value += parseFloat(averageAccel) + ' ';
+    value += 'tag=axis_accel\n';
+
+    socket.write(value, function ack() {
+        WriteServerLogs("INFO", ACCELEROMETER_DATA_TO_DB_INFO);
+    });
+}
+
+function GetAcceleration(x, y, z) {
+    return Math.sqrt(Math.pow(x,2) + Math.pow(y, 2) + Math.pow(z, 2));
 }
 
 function FetchPulseMetricsFromDB(isConnected, timePeriod) {
@@ -236,6 +303,41 @@ function FetchPulseMetricsFromDB(isConnected, timePeriod) {
         return;
 }
 
+function FetchRespAccelMetricsFromDB(isConnected, timeperiod) {
+    if(isConnected){
+        var valArr = new Array();
+
+        var mQuery = opentsdb.mquery();
+        mQuery.aggregator( 'none' );
+        mQuery.tags( 'tag', 'axis_accel' );
+        mQuery.metric( ACCELEROMETER_DB_NAME );
+
+        var date = new Date();
+        var current_time = parseInt(date.getTime()/1000);
+
+        dbClient.start( convertTime(current_time-timePeriod_pulse) );
+        dbClient.end( convertTime(current_time) );
+        dbClient.queries(mQuery);
+
+        dbClient.get( function onData(error, data){
+            if(error){
+                console.error(JSON.stringify(error));
+                return;
+            }
+            else{
+                for(i=0; i<data[0].dps.length; i++){
+                    valArr.push(data[0].dps[i][0].toString());
+                    valArr.push(data[0].dps[i][1].toString());
+                }
+                listener.sockets.emit('rpmAcc data', valArr);
+            }
+        });
+
+    }
+    else
+        return;
+}
+
 function SendPulseSpoData(isConnected, data) {
     if(isConnected){
         var pulseData = GetPulseDataArray(data)[0] + "|" + GetPulseDataArray(data)[1];
@@ -252,6 +354,7 @@ function SendPulseSpoData(isConnected, data) {
 //TODO EEG-SMT Widget
 //TODO Pacienta Ielogosanas (PID/ Katram sava ierice)
 //TODO MySQL DB - Pacienti, Ierices(Cik sensoru un t.t.), Organization
+//TODO Script for Automated Deployment
 
 function SendRespiratoryRateData(isConnected, data){
     if(isConnected){
@@ -283,6 +386,26 @@ function SendBpmChartData(isConnected, data) {
             WritePulseToDB(bpmArray[bpmCounter-1]);
             bpmCounter = 0;
             bpmArray.length = 0;
+        }
+    }
+    else
+        return;
+}
+
+function SendRespiratoryAccelData(isConnected, data) {
+    if(isConnected) {
+        var tmpAccelArray = GetPositionArray(data);
+
+        rpmAccelArray[rpmAccelCounter] = new Array();
+        for(var i=0; i<tmpAccelArray.length; i++) {
+            rpmAccelArray[rpmAccelCounter][i] = tmpAccelArray[i];
+        }
+
+        rpmAccelCounter++;
+        if(rpmAccelCounter == 73) {
+            WriteRespiratoryAccelToDB(rpmAccelArray);
+            rpmAccelCounter = 0;
+            rpmAccelArray.length = 0;
         }
     }
     else
@@ -642,6 +765,20 @@ function LaunchHTTPServer() {
                 });
                 break;
             case '/bower_components/adf-widget-bpmchart/dist/adf-widget-bpmchart.min.js':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/html"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/bower_components/adf-widget-rpmaccel/dist/adf-widget-rpmaccel.min.js':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
                         response.writeHead(404);
