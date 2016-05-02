@@ -10,7 +10,6 @@ int cont = 0;
 MMA8452Q accel;
 
 void setup() {
-
   Serial.begin(115200);  
   eHealth.initPulsioximeter();
   PCintPort::attachInterrupt(6, readPulsioximeter, RISING);  
@@ -21,6 +20,8 @@ void loop() {
   printCalculatedAccels();
   Serial.print("|");
   printPulsometerData();
+  Serial.print("|");
+  printGsrData();  
   Serial.print("\n");
   delay(10); //	wait for 10 milisecs.
 }
@@ -51,6 +52,13 @@ void printPulsometerData(){
   Serial.print(values);
 }
 
+void printGsrData(){
+  float conductance = eHealth.getSkinConductanceVoltage();
+  float resistance = eHealth.getSkinResistance();
+  Serial.print(conductance, 2);
+  Serial.print("|");
+  Serial.print(resistance, 2);  
+}
 
 
 

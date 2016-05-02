@@ -5,19 +5,23 @@ var PULSOMETER_WIDGET_CONNECTED_INFO = "Pulsometer widget connected to platform"
 var RESPIRATORY_RATE_WIDGET_CONNECTED_INFO = "Respiratory rate widget connected to platform";
 var PULSE_CHART_WIDGET_CONNECTED_INFO = "Pulse chart widget connected to platform";
 var RPM_ACCEL_WIDGET_CONNECTED_INFO = "Respiratory acceleration widget connected to platform";
+var GSR_WIDGET_CONNECTED_INFO = "GSR widget connected to platform";
 var PULSE_DATA_TO_DB_INFO = "Pulse data was written to database";
 var ACCELEROMETER_DATA_TO_DB_INFO = "Accelerometer data was written to database";
-
+var GSR_DATA_TO_DB_INFO = "GSR data was written to database";
 
 var http = require('http');
 var url = require('url');
 var fs = require('fs');
 var io = require('socket.io', {forceNew: true});
 
-//**Defining constant variables**//
+//----------------Defining opentsdb variables-----------------//
 var PATH_TO_OPENTSDB = "/home/aleksejs/opentsdb";
 var ACCELEROMETER_DB_NAME = 'accelerometer.data';
 var PULSOMETER_DB_NAME = 'pulsometer.data';
+var GSR_DB_NAME = 'gsr.data';
+//-----------------------------------------------------------//
+
 
 //**Initialising HBase Tables**//
 InitHBaseTables(PATH_TO_OPENTSDB);
@@ -34,6 +38,10 @@ var dbClient = opentsdb.client();
 dbClient.host('127.0.0.1');
 dbClient.port( 4242 );
 
+var tmpdbClient = opentsdb.client();
+tmpdbClient.host('127.0.0.1');
+tmpdbClient.port( 4242 );
+
 //**Initialising serialport**/
 var serialport = require('serialport');
 var SerialPort = serialport.SerialPort;
@@ -47,20 +55,18 @@ var connection = new SerialPort(portName, {
 });
 //**************************************//
 
-//**Initialising fft module**//
+//-----------------Initialising fft module----------------//
 var fft = require('fft-js').fft;
 var fftUtil = require('fft-js').util;
+//--------------------------------------------------------//
 
-var rpmArray = new Array();
-var rpmCounter = 0;
-var time = 0;
-
-var rpmAccelArray = new Array();
-var rpmAccelCounter = 0;
-
-//**Initialising array for pulse data**/
+//------------------Sensor Data Arrays-------------------//
 var bpmArray = new Array();
-var bpmCounter = 0;
+var rpmArray = new Array();
+var rpmAccelArray = new Array();
+var gsrArray = new Array();
+//------------------------------------------------------//
+
 
 /**Launching Http Server**/
 server = LaunchHTTPServer();
@@ -72,17 +78,27 @@ connection.on('open', function(){
     console.log("***Connected to serial port***");
 });
 
-/**Timers**/
+//------------------Timers-----------------------//
 var wait = 0;
 var timePeriod_pulse = 10;
 var timePeriodHelper_pulse = 0;
 var timePeriod_accel = 10;
 var timePeriodHelper_accel = 0;
+var timePeriod_gsr = 10;
+var timePeriodHelper_gsr = 0;
+
+var time = 0;
+var rpmCounter = 0;
+var rpmAccelCounter = 0;
+var bpmCounter = 0;
+var gsrCounter = 0;
+//----------------------------------------------//
 
 var bpmspoWidgetIsConnected = false;
 var rpmWidgetIsConnected = false;
 var bpmChartWidgetIsConnected = false;
 var rpmAccelWidgetIsConnected = false;
+var gsrWidgetIsConnected = false;
 
 var canstart = false;
 
@@ -100,7 +116,6 @@ var timerId = setInterval(function(){
         }
 
         if(rpmAccelWidgetIsConnected) {
-            //--Shows pulse history for last 5 minutes (300 sec)--//
             FetchRespAccelMetricsFromDB(rpmAccelWidgetIsConnected, timePeriod_accel);
 
             if(timePeriod_accel != 300 && timePeriodHelper_accel == timePeriod_accel)
@@ -108,6 +123,16 @@ var timerId = setInterval(function(){
 
             if(timePeriodHelper_accel != 300)
                 timePeriodHelper_accel++;
+        }
+
+        if(gsrWidgetIsConnected) {
+            FetchGsrMetricsFromDB(gsrWidgetIsConnected, timePeriod_gsr);
+
+            if(timePeriod_gsr != 300 && timePeriodHelper_gsr == timePeriod_gsr)
+                timePeriod_gsr += 10;
+
+            if(timePeriodHelper_gsr != 300)
+                timePeriodHelper_gsr++;
         }
     }
 }, 1000);
@@ -149,12 +174,20 @@ connection.on('data', function(data){
                     WriteServerLogs("INFO", RPM_ACCEL_WIDGET_CONNECTED_INFO);
                 }
             });
+
+            socket.on('getGsrData', function(data) {
+                if(!gsrWidgetIsConnected){
+                    gsrWidgetIsConnected = true;
+                    WriteServerLogs("INFO", GSR_WIDGET_CONNECTED_INFO);
+                }
+            });
         });
 
         SendPulseSpoData(bpmspoWidgetIsConnected, data);
         SendRespiratoryRateData(rpmWidgetIsConnected, data);
         SendBpmChartData(bpmChartWidgetIsConnected, data);
         SendRespiratoryAccelData(rpmAccelWidgetIsConnected, data);
+        SendGsrData(gsrWidgetIsConnected, data);
     }
 });
 
@@ -171,6 +204,7 @@ function CreateOpenTsdbTable(pathToOpenTSDB, tableName){
 function InitHBaseTables(pathToOpenTSDB){
     CreateOpenTsdbTable(pathToOpenTSDB, ACCELEROMETER_DB_NAME);
     CreateOpenTsdbTable(pathToOpenTSDB, PULSOMETER_DB_NAME);
+    CreateOpenTsdbTable(pathToOpenTSDB, GSR_DB_NAME);
 }
 
 function GetPulseDataArray(data){
@@ -197,6 +231,15 @@ function GetPositionArray(data){
     xyz[1] = arr[1];
     xyz[2] = arr[2];
     return xyz;
+}
+
+function GetGsrArray(data){
+    var arr = data.split("|");
+    var gsr = new Array(2);
+    gsr[0] = arr[5];
+    gsr[1] = arr[6];
+    //console.log('Conductance: ' + gsr[0] + ' -- Resistance: ' + gsr[1]);
+    return gsr;
 }
 
 function WritePulseToDB(data) {
@@ -264,6 +307,43 @@ function WriteRespiratoryAccelToDB(data) {
     });
 }
 
+function WriteGsrToDB(data) {
+    var averageConductance = 0;
+    var averageResistance = 0;
+    var counter = 0;
+
+    for(var i=0; i<data.length; i++){
+        if(parseFloat(data[i][0]) <= 10) {
+            averageConductance += parseFloat(data[i][0]);
+            averageResistance += parseFloat(data[i][1]);
+            counter++;
+        }
+    }
+
+    averageConductance /= counter;
+
+    averageResistance /= counter;
+    averageResistance /= 1000;
+
+    console.log(averageConductance + " " + averageResistance);
+
+    WriteToDB(GSR_DB_NAME, 'avg_conductance', averageConductance, GSR_DATA_TO_DB_INFO);
+    WriteToDB(GSR_DB_NAME, 'avg_resistance', averageResistance, GSR_DATA_TO_DB_INFO);
+}
+
+function WriteToDB(db_name, tag, metric_value, log_name) {
+    var value = '';
+    var now = require('date-now');
+    value += 'put ';
+    value += db_name + ' ';
+    value += parseInt(Date.now()) + ' ';
+    value += parseFloat(metric_value) + ' ';
+    value += 'tag=' + tag + '\n';
+    socket.write(value, function ack() {
+        WriteServerLogs("INFO", log_name);
+    });
+}
+
 function GetAcceleration(x, y, z) {
     return Math.sqrt(Math.pow(x,2) + Math.pow(y, 2) + Math.pow(z, 2));
 }
@@ -303,7 +383,7 @@ function FetchPulseMetricsFromDB(isConnected, timePeriod) {
         return;
 }
 
-function FetchRespAccelMetricsFromDB(isConnected, timeperiod) {
+function FetchRespAccelMetricsFromDB(isConnected, timePeriod) {
     if(isConnected){
         var valArr = new Array();
 
@@ -315,7 +395,7 @@ function FetchRespAccelMetricsFromDB(isConnected, timeperiod) {
         var date = new Date();
         var current_time = parseInt(date.getTime()/1000);
 
-        dbClient.start( convertTime(current_time-timePeriod_pulse) );
+        dbClient.start( convertTime(current_time-timePeriod) );
         dbClient.end( convertTime(current_time) );
         dbClient.queries(mQuery);
 
@@ -338,6 +418,70 @@ function FetchRespAccelMetricsFromDB(isConnected, timeperiod) {
         return;
 }
 
+function FetchGsrMetricsFromDB(isConnected, timePeriod) {
+    if(isConnected) {
+        var valArr1 = new Array();
+        var valArr2 = new Array();
+        var dataArr = new Array(2);
+
+        var mQuery = opentsdb.mquery();
+        mQuery.aggregator( 'none' );
+        mQuery.tags( 'tag', 'avg_conductance' );
+        mQuery.metric( GSR_DB_NAME );
+
+        var date = new Date();
+        var current_time = parseInt(date.getTime()/1000);
+
+        dbClient.start( convertTime(current_time-timePeriod) );
+        dbClient.end( convertTime(current_time) );
+        dbClient.queries(mQuery);
+
+        dbClient.get( function onData(error, data){
+            if(error){
+                console.error(JSON.stringify(error));
+                return;
+            }
+            else{
+                for (i = 0; i < data[0].dps.length; i++) {
+                    valArr1.push(data[0].dps[i][0].toString());
+                    valArr1.push(data[0].dps[i][1].toString());
+                }
+                dataArr[0] = valArr1;
+
+                var mQuery2 = opentsdb.mquery();
+                mQuery2.aggregator( 'none' );
+                mQuery2.tags( 'tag', 'avg_resistance' );
+                mQuery2.metric( GSR_DB_NAME );
+
+                var date = new Date();
+                var current_time = parseInt(date.getTime()/1000);
+
+                tmpdbClient.start( convertTime(current_time-timePeriod) );
+                tmpdbClient.end( convertTime(current_time) );
+                tmpdbClient.queries(mQuery2);
+
+                tmpdbClient.get( function onData(error, data){
+                    if(error){
+                        console.error(JSON.stringify(error));
+                        return;
+                    }
+                    else{
+                        for (i = 0; i < data[0].dps.length; i++) {
+                            valArr2.push(data[0].dps[i][0].toString());
+                            valArr2.push(data[0].dps[i][1].toString());
+                        }
+                        dataArr[1] = valArr2;
+
+                        listener.sockets.emit('gsr data', dataArr);
+                    }
+                });
+            }
+        });
+    }
+    else
+        return;
+}
+
 function SendPulseSpoData(isConnected, data) {
     if(isConnected){
         var pulseData = GetPulseDataArray(data)[0] + "|" + GetPulseDataArray(data)[1];
@@ -347,10 +491,6 @@ function SendPulseSpoData(isConnected, data) {
         return;
 }
 
-//TODO Total Acceleration (sqrt(x^2+y^2+z^2)) Widget
-//Videjais aritmetiskais par 1 sekunde
-//TODO Conductance and Resistance Chart. Conductance to Ohms (/1000).
-//Divi Y asi.
 //TODO EEG-SMT Widget
 //TODO Pacienta Ielogosanas (PID/ Katram sava ierice)
 //TODO MySQL DB - Pacienti, Ierices(Cik sensoru un t.t.), Organization
@@ -406,6 +546,26 @@ function SendRespiratoryAccelData(isConnected, data) {
             WriteRespiratoryAccelToDB(rpmAccelArray);
             rpmAccelCounter = 0;
             rpmAccelArray.length = 0;
+        }
+    }
+    else
+        return;
+}
+
+function SendGsrData(isConnected, data) {
+    if(isConnected) {
+        var tmpGsrArray = GetGsrArray(data);
+        gsrArray[gsrCounter] = new Array();
+
+        for(var i=0; i<tmpGsrArray.length; i++){
+            gsrArray[gsrCounter][i] = tmpGsrArray[i];
+        }
+
+        gsrCounter++;
+        if(gsrCounter == 73) {
+            WriteGsrToDB(gsrArray);
+            gsrCounter = 0;
+            gsrArray.length = 0;
         }
     }
     else
@@ -779,6 +939,20 @@ function LaunchHTTPServer() {
                 });
                 break;
             case '/bower_components/adf-widget-rpmaccel/dist/adf-widget-rpmaccel.min.js':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/html"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/bower_components/adf-widget-gsr/dist/adf-widget-gsr.min.js':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
                         response.writeHead(404);
