@@ -98,5 +98,5 @@ app.controller('gsrController', ["$scope", "$interval", "socket", function($scop
 
 
 
-angular.module("adf.widget.gsr").run(["$templateCache", function($templateCache) {$templateCache.put("{widgetsPath}/gsr/src/edit.html","<form role=form><div class=form-group><label for=sample>Sample</label> <input type=text class=form-control id=sample ng-model=config.sample placeholder=\"Enter sample\"></div></form>");
+angular.module("adf.widget.gsr").run(["$templateCache", function($templateCache) {$templateCache.put("{widgetsPath}/gsr/src/edit.html","<form role=form><div class=form-group></div></form>");
 $templateCache.put("{widgetsPath}/gsr/src/view.html","<div ng-controller=gsrController><div ng-if=!chartConfig><h1>Loading...</h1></div><div ng-if=chartConfig><highchart id=chart1 config=chartConfig></highchart></div></div>");}]);})(window);

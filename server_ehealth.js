@@ -238,7 +238,6 @@ function GetGsrArray(data){
     var gsr = new Array(2);
     gsr[0] = arr[5];
     gsr[1] = arr[6];
-    //console.log('Conductance: ' + gsr[0] + ' -- Resistance: ' + gsr[1]);
     return gsr;
 }
 
@@ -324,8 +323,6 @@ function WriteGsrToDB(data) {
 
     averageResistance /= counter;
     averageResistance /= 1000;
-
-    console.log(averageConductance + " " + averageResistance);
 
     WriteToDB(GSR_DB_NAME, 'avg_conductance', averageConductance, GSR_DATA_TO_DB_INFO);
     WriteToDB(GSR_DB_NAME, 'avg_resistance', averageResistance, GSR_DATA_TO_DB_INFO);
