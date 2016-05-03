@@ -542,7 +542,6 @@ function SendPulseSpoData(isConnected, data) {
         return;
 }
 
-//TODO EEG-SMT Widget
 //TODO Pacienta Ielogosanas (PID/ Katram sava ierice)
 //TODO MySQL DB - Pacienti, Ierices(Cik sensoru un t.t.), Organization
 //TODO Script for Automated Deployment
