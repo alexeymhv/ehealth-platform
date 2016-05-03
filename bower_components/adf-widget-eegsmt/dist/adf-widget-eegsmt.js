@@ -1,7 +1,8 @@
-'use strict';
+(function(window, undefined) {'use strict';
+
 
 var app = angular.module('adf.widget.eegsmt', ['adf.provider', 'highcharts-ng']);
-app.config(function(dashboardProvider){
+app.config(["dashboardProvider", function(dashboardProvider){
   dashboardProvider
     .widget('eegsmt', {
       title: 'EEG-SMT Live',
@@ -14,14 +15,14 @@ app.config(function(dashboardProvider){
         templateUrl: '{widgetsPath}/eegsmt/src/edit.html'
       }
     });
-});
+}]);
 
 app.factory('socket', function(){
   var socket = io.connect('http://127.0.1.1:3000')
   return socket;
 });
 
-app.controller('eegSmtController', function($scope, $interval, socket) {
+app.controller('eegSmtController', ["$scope", "$interval", "socket", function($scope, $interval, socket) {
   var bpmch = this;
 
   socket.emit('getEegSmtData', {data: 'Give me some EEG'});
@@ -87,4 +88,7 @@ app.controller('eegSmtController', function($scope, $interval, socket) {
     $scope.$digest();
 
   });
-});
+}]);
+
+angular.module("adf.widget.eegsmt").run(["$templateCache", function($templateCache) {$templateCache.put("{widgetsPath}/eegsmt/src/edit.html","<form role=form><div class=form-group><label for=sample>Sample</label> <input type=text class=form-control id=sample ng-model=config.sample placeholder=\"Enter sample\"></div></form>");
+$templateCache.put("{widgetsPath}/eegsmt/src/view.html","<div ng-controller=eegSmtController><div ng-if=!chartConfig><h1>Loading...</h1></div><div ng-if=chartConfig><highchart id=chart1 config=chartConfig></highchart></div></div>");}]);})(window);

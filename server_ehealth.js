@@ -6,6 +6,7 @@ var RESPIRATORY_RATE_WIDGET_CONNECTED_INFO = "Respiratory rate widget connected 
 var PULSE_CHART_WIDGET_CONNECTED_INFO = "Pulse chart widget connected to platform";
 var RPM_ACCEL_WIDGET_CONNECTED_INFO = "Respiratory acceleration widget connected to platform";
 var GSR_WIDGET_CONNECTED_INFO = "GSR widget connected to platform";
+var EEG_SMT_WIDGET_CONNECTED_INFO = "EEG-SMT widget connected to platform";
 var PULSE_DATA_TO_DB_INFO = "Pulse data was written to database";
 var ACCELEROMETER_DATA_TO_DB_INFO = "Accelerometer data was written to database";
 var GSR_DATA_TO_DB_INFO = "GSR data was written to database";
@@ -20,6 +21,7 @@ var PATH_TO_OPENTSDB = "/home/aleksejs/opentsdb";
 var ACCELEROMETER_DB_NAME = 'accelerometer.data';
 var PULSOMETER_DB_NAME = 'pulsometer.data';
 var GSR_DB_NAME = 'gsr.data';
+var EEGSMT_DB_NAME = 'eeg.data';
 //-----------------------------------------------------------//
 
 
@@ -99,6 +101,7 @@ var rpmWidgetIsConnected = false;
 var bpmChartWidgetIsConnected = false;
 var rpmAccelWidgetIsConnected = false;
 var gsrWidgetIsConnected = false;
+var eegSmtWidgetIsConnected = false;
 
 var canstart = false;
 
@@ -133,6 +136,10 @@ var timerId = setInterval(function(){
 
             if(timePeriodHelper_gsr != 300)
                 timePeriodHelper_gsr++;
+        }
+
+        if(eegSmtWidgetIsConnected) {
+            FetchEegSmtMetricsFromDB(eegSmtWidgetIsConnected);
         }
     }
 }, 1000);
@@ -181,6 +188,13 @@ connection.on('data', function(data){
                     WriteServerLogs("INFO", GSR_WIDGET_CONNECTED_INFO);
                 }
             });
+
+            socket.on('getEegSmtData', function(data) {
+                if(!eegSmtWidgetIsConnected){
+                    eegSmtWidgetIsConnected = true;
+                    WriteServerLogs("INFO", EEG_SMT_WIDGET_CONNECTED_INFO);
+                }
+            });
         });
 
         SendPulseSpoData(bpmspoWidgetIsConnected, data);
@@ -205,6 +219,7 @@ function InitHBaseTables(pathToOpenTSDB){
     CreateOpenTsdbTable(pathToOpenTSDB, ACCELEROMETER_DB_NAME);
     CreateOpenTsdbTable(pathToOpenTSDB, PULSOMETER_DB_NAME);
     CreateOpenTsdbTable(pathToOpenTSDB, GSR_DB_NAME);
+    CreateOpenTsdbTable(pathToOpenTSDB, EEGSMT_DB_NAME);
 }
 
 function GetPulseDataArray(data){
@@ -473,6 +488,45 @@ function FetchGsrMetricsFromDB(isConnected, timePeriod) {
                     }
                 });
             }
+        });
+    }
+    else
+        return;
+}
+
+function FetchEegSmtMetricsFromDB(isConnected) {
+    if(isConnected){
+        var mQuery = opentsdb.mquery();
+        mQuery.aggregator( 'none' );
+        mQuery.tags( 'tag', '*' );
+        mQuery.metric( EEGSMT_DB_NAME );
+
+        var valArr = new Array();
+
+        var data = new Date();
+        var current_time = parseInt(data.getTime()/1000);
+
+        dbClient.start( convertTime(current_time-200) );
+        dbClient.end( convertTime(current_time) );
+        dbClient.queries(mQuery);
+
+        dbClient.get( function onData(error, data){
+            if(error){
+                console.error(JSON.stringify(error));
+                return;
+            }
+
+            data.toString();
+
+            for(i=0; i<data[0].dps.length; i++){
+                valArr.push(data[0].dps[i][0].toString());
+                valArr.push(data[0].dps[i][1].toString());
+            }
+
+            listener.sockets.emit('eegsmt data', {'message':valArr});
+
+            valArr.length = 0;
+
         });
     }
     else
@@ -950,6 +1004,20 @@ function LaunchHTTPServer() {
                 });
                 break;
             case '/bower_components/adf-widget-gsr/dist/adf-widget-gsr.min.js':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/html"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/bower_components/adf-widget-eegsmt/dist/adf-widget-eegsmt.min.js':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
                         response.writeHead(404);

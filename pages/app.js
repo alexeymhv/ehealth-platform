@@ -6,7 +6,8 @@
 
 var app = angular.module('sample', ['adf', 'adf.structures.base', 'adf.widget.clock', 'adf.widget.bpmspo',
                           'adf.widget.rpmsensor', 'adf.widget.bpmchart', 'adf.widget.rpmaccel',
-                          'adf.widget.gsr', 'LocalStorageModule', 'stress-test', 'ngRoute']);
+                          'adf.widget.gsr', 'adf.widget.eegsmt', 'LocalStorageModule',
+                          'stress-test', 'ngRoute']);
 app.config(function (dashboardProvider, $routeProvider, localStorageServiceProvider) {
     dashboardProvider.widgetsPath('bower_components/');
     localStorageServiceProvider.setPrefix('adf');
