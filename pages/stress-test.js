@@ -1,8 +1,8 @@
 'use strict';
 
-var app = angular.module('stress-test', ['adf', 'LocalStorageModule']);
+var app = angular.module('stress-test', ['adf', 'LocalStorageModule', 'webStorageModule']);
 
-app.controller('stressTestCtrl', function($scope, localStorageService){
+app.controller('stressTestCtrl', function($scope, localStorageService, webStorage){
    var name = 'stress-test';
    var model = localStorageService.get(name);
 

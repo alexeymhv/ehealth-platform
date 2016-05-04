@@ -159,6 +159,10 @@ listener.sockets.on('connection', function(socket) {
         LoginToPlatform(data);
     });
     
+    socket.on('register', function (data) {
+        RegisterNewDevice(data);
+    })
+    
     socket.on('serialNumber', function (data) {
         listener.sockets.emit('serial number', {serialNumber: ARDUINO_SERIAL_NUMBER});
         console.log(data);
@@ -703,13 +707,13 @@ function LoginToPlatform(credentials) {
 
     connection.connect();
 
-    var query = 'SELECT Login, Password FROM Users WHERE Login=\''+ credentials.serialNumber + '\' AND ' +
-        'Password='+ credentials.pass;
+    var query =
+        'SELECT serialnumber, password FROM users WHERE serialnumber=\''+ credentials.serialNumber + '\'';
 
     connection.query(query, function (err, rows, fields) {
         if(err) throw err;
 
-        if(rows.length == 1){
+        if(VerifyPassword(credentials.pass, rows[0].password)){
             listener.sockets.emit('correct credentials', {data: 'ok'});
         }
         else listener.sockets.emit('wrong credentials', {data: 'failed'});
@@ -718,7 +722,79 @@ function LoginToPlatform(credentials) {
     connection.end();
 }
 
+function RegisterNewDevice(data) {
+    var mysql = require('mysql');
+    var connection = mysql.createConnection({
+        host: 'localhost',
+        user: 'root',
+        password: 'rootpass',
+        database: 'ehealth'
+    });
 
+    var serialNumberIsUnique = SerialNumberIsUnique(data.serialNumber, function (err, received_data) {
+        if(received_data){
+            connection.connect();
+
+            console.log(GetPasswordHash(data.password));
+
+            var query = 'INSERT INTO users (serialnumber, email, password, name, surname, phone, address) ' +
+                'VALUES (\''+ data.serialNumber +'\', \''+ data.email +'\', \''+ GetPasswordHash(data.password) +'\', \''+
+                data.name +'\', \''+ data.surname +'\', \''+ data.phone +'\', \''+ data.address +'\')';
+
+            connection.query(query, function (err, result) {
+                if(err) throw err;
+
+                if(result.affectedRows == 1)
+                    listener.sockets.emit('device registered', {data: 'ok'});
+            });
+
+            connection.end();
+        }
+        else
+            listener.sockets.emit('device exists', {data: 'failed'});
+        
+    });
+}
+
+function SerialNumberIsUnique(serialNumber, callback) {
+    var mysql = require('mysql');
+    var connection = mysql.createConnection({
+        host: 'localhost',
+        user: 'root',
+        password: 'rootpass',
+        database: 'ehealth'
+    });
+
+    connection.connect();
+
+    var query =
+        'SELECT * FROM users WHERE serialnumber=\''+ serialNumber + '\'';
+
+    connection.query(query, function (err, rows, fields) {
+        if(err) throw err;
+
+        if(rows.length > 0){
+            connection.end();
+            callback(null, false);
+        }
+        else if(rows.length == 0){
+            connection.end();
+            callback(null, true);
+        }
+    });
+
+}
+
+function GetPasswordHash(password){
+    var passwordHash = require('password-hash');
+    var hashedPassword = passwordHash.generate(password);
+    return hashedPassword;
+}
+
+function VerifyPassword(password, hash) {
+    var passwordHash = require('password-hash');
+    return passwordHash.verify(password, hash);
+}
 
 function LaunchHTTPServer() {
     var server = http.createServer(function(request, response){
@@ -814,6 +890,8 @@ function LaunchHTTPServer() {
                     }
                 });
                 break;
+
+
             case '/pages/directives.js':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
@@ -899,6 +977,20 @@ function LaunchHTTPServer() {
                 });
                 break;
             case '/bower_components/angular/angular.js':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/javascript"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/bower_components/angular-webstorage/angular-webstorage.min.js':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
                         response.writeHead(404);

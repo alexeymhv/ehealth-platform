@@ -7,7 +7,7 @@
 var app = angular.module('sample', ['adf', 'adf.structures.base', 'adf.widget.clock', 'adf.widget.bpmspo',
                           'adf.widget.rpmsensor', 'adf.widget.bpmchart', 'adf.widget.rpmaccel',
                           'adf.widget.gsr', 'adf.widget.eegsmt', 'LocalStorageModule',
-                          'stress-test', 'ngRoute', 'ngAnimate', 'toaster']);
+                          'stress-test', 'ngRoute', 'ngAnimate', 'toaster', 'webStorageModule']);
 app.config(function (dashboardProvider, $routeProvider, localStorageServiceProvider) {
     dashboardProvider.widgetsPath('bower_components/');
     localStorageServiceProvider.setPrefix('adf');
@@ -24,52 +24,36 @@ app.config(function (dashboardProvider, $routeProvider, localStorageServiceProvi
             controller: 'authCtrl'
         })
         .when('/stress-test',{
-        templateUrl: 'partials/stress-test.html',
-        controller: 'stressTestCtrl'
-    })
+            title: 'Stress-test',
+            templateUrl: 'partials/stress-test.html',
+            controller: 'stressTestCtrl',
+            resolve: {
+
+            }
+        })
     .otherwise({
         redirectTo: '/login'
     });
+
+
 });
 
-app.controller('navigationCtrl', function($scope, $location) {
 
-    $scope.navCollapsed = true;
 
-    $scope.toogleNav = function(){
-      $scope.navCollapsed = !$scope.navCollapsed;
-    };
+app.run(function ($rootScope, $location, webStorage) {
+    $rootScope.$on("$routeChangeStart", function (event, next, current) {
+        $rootScope.authenticated = false;
+            if (webStorage.get('login')) {
+                $rootScope.authenticated = true;
+            } else {
+                var nextUrl = next.$$route.originalPath;
+                if (nextUrl == '/signup' || nextUrl == '/login') {
 
-    $scope.$on('$routeChangeStart', function() {
-        $scope.navCollapsed = true;
+                } else {
+                    $location.path("/login");
+                }
+            }
     });
-
-    $scope.navClass = function (page) {
-        var currentRoute = $location.path().substring(1) || 'Stress Test';
-        return page == currentRoute || new RegExp(page).test(currentRoute) ? 'active' : '';
-    };
 });
-
-
-//app.run(function ($rootScope, $location, Data) {
-//    $rootScope.$on("$routeChangeStart", function (event, next, current) {
-//        $rootScope.authenticated = false;
-//        Data.get('session').then(function (results) {
-//            if (results.uid) {
-//                $rootScope.authenticated = true;
-//                $rootScope.uid = results.uid;
-//                $rootScope.name = results.name;
-//                $rootScope.email = results.email;
-//            } else {
-//                var nextUrl = next.$$route.originalPath;
-//                if (nextUrl == '/signup' || nextUrl == '/login') {
-//
-//                } else {
-//                    $location.path("/login");
-//                }
-//            }
-//        });
-//    });
-//});
 
 
