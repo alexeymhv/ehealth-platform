@@ -26,20 +26,7 @@ app.controller('rpmController', function($scope, $interval, socket){
 
   socket.emit('getRpmData', {data: 'Give me some respiratory rate'});
 
-  //TODO - the breathe frequency should be changing dynamically
   rpm.frequency = "Loading...";
-
-  //$scope.msgs = [];
-  //
-  //$scope.sendMsg = function(){
-  //  socket.emit('send msg', $scope.msg.text);
-  //};
-  //
-  //socket.on('get msg', function (data) {
-  //  $scope.msgs.push(data);
-  //  bpm.data = data;
-  //  $scope.$digest();
-  //})
 
   socket.on('breathe data', function (brData) {
 
@@ -48,7 +35,6 @@ app.controller('rpmController', function($scope, $interval, socket){
       dataArray.push({x: parseFloat(brData[i].frequency), y: parseFloat(brData[i].magnitude)});
     }
 
-    //rpm.frequency = parseFloat((parseFloat(GetFrequency(brData))/60)) * 16;
     rpm.frequency = GetFrequency(brData);
 
     $scope.chartConfig = {

@@ -9,6 +9,7 @@
         <title>e-Health Platform</title>
         <link href="bower_components/adf-widget-clock/dist/adf-widget-clock.min.css" rel="stylesheet">
         <link href="bower_components/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
+        <link href="bower_components/AngularJS-Toaster/toaster.css" rel="stylesheet">
         <link href="bower_components/angular-dashboard-framework/dist/angular-dashboard-framework.min.css" rel="stylesheet">
         <style type="text/css">
             body {
@@ -34,10 +35,14 @@
         </div>
         <div class="container">
             <div ng-view />
+            <!--<div data-ng-view="" id="ng-view" class="slide-animation"></div>-->
         </div>
     </body>
+    <toaster-container toaster-options="{'time-out': 3000}"></toaster-container>
 
     <script type="text/javascript" src="bower_components/angular/angular.js"></script>
+    <script type="text/javascript" src="bower_components/AngularJS-Toaster/toaster.js"></script>
+    <script type="text/javascript" src="bower_components/angular-animate/angular-animate.js"></script>
     <script type="text/javascript" src="bower_components/angular-route/angular-route.min.js"></script>
     <script type="text/javascript" src="bower_components/Sortable/Sortable.js"></script>
     <script type="text/javascript" src="bower_components/angular-bootstrap/ui-bootstrap.js"></script>
@@ -59,6 +64,10 @@
     <!--Pages-->
     <script src="pages/app.js"></script>
     <script src="pages/stress-test.js"></script>
+    <script src="pages/authCtrl.js"></script>
+    <script src="pages/data.js"></script>
+    <script src="pages/directives.js"></script>
+    <script src="pages/socket.js"></script>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.js"></script>

@@ -1,0 +1,4 @@
+RewriteEngine On 
+RewriteBase /ehealth-platform/
+RewriteCond %{REQUEST_FILENAME} !-f 
+RewriteRule ^(.*)$ %{ENV:BASE}index.html [QSA,L]

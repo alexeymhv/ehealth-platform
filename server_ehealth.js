@@ -48,6 +48,14 @@ tmpdbClient.port( 4242 );
 var serialport = require('serialport');
 var SerialPort = serialport.SerialPort;
 var portName = '/dev/ttyACM0';
+var ARDUINO_SERIAL_NUMBER = "";
+
+serialport.list(function (err, ports) {
+    ports.forEach(function(port) {
+        if(port.comName == portName)
+            ARDUINO_SERIAL_NUMBER = port.serialNumber;
+    });
+});
 
 //**Initialising connection to opentsdb**//
 //TODO Check if there is a connection to port
@@ -143,6 +151,20 @@ var timerId = setInterval(function(){
         }
     }
 }, 1000);
+
+listener.sockets.on('connection', function(socket) {
+    socket.setMaxListeners(0);
+
+    socket.on('login', function (data) {
+        LoginToPlatform(data);
+    });
+    
+    socket.on('serialNumber', function (data) {
+        listener.sockets.emit('serial number', {serialNumber: ARDUINO_SERIAL_NUMBER});
+        console.log(data);
+    })
+});
+
 
 connection.on('data', function(data){
     if(wait < 10)
@@ -670,6 +692,34 @@ function convertTime(timestamp) {
     return newDate;
 }
 
+function LoginToPlatform(credentials) {
+    var mysql = require('mysql');
+    var connection = mysql.createConnection({
+        host: 'localhost',
+        user: 'root',
+        password: 'rootpass',
+        database: 'ehealth'
+    });
+
+    connection.connect();
+
+    var query = 'SELECT Login, Password FROM Users WHERE Login=\''+ credentials.serialNumber + '\' AND ' +
+        'Password='+ credentials.pass;
+
+    connection.query(query, function (err, rows, fields) {
+        if(err) throw err;
+
+        if(rows.length == 1){
+            listener.sockets.emit('correct credentials', {data: 'ok'});
+        }
+        else listener.sockets.emit('wrong credentials', {data: 'failed'});
+    });
+
+    connection.end();
+}
+
+
+
 function LaunchHTTPServer() {
     var server = http.createServer(function(request, response){
         var path = url.parse(request.url).pathname;
@@ -722,7 +772,91 @@ function LaunchHTTPServer() {
                     }
                 });
                 break;
+            case '/pages/authCtrl.js':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/javascript"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/pages/data.js':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/javascript"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/pages/socket.js':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/javascript"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/pages/directives.js':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/javascript"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
             case '/partials/stress-test.html':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/javascript"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/partials/login.html':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/javascript"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/partials/signup.html':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
                         response.writeHead(404);
@@ -765,6 +899,34 @@ function LaunchHTTPServer() {
                 });
                 break;
             case '/bower_components/angular/angular.js':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/javascript"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/bower_components/angular-animate/angular-animate.js':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/javascript"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/bower_components/AngularJS-Toaster/toaster.js':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
                         response.writeHead(404);
@@ -863,6 +1025,20 @@ function LaunchHTTPServer() {
                 });
                 break;
             case '/bower_components/adf-widget-clock/dist/adf-widget-clock.min.css':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/css"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/bower_components/AngularJS-Toaster/toaster.css':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
                         response.writeHead(404);
@@ -1128,6 +1304,48 @@ function LaunchHTTPServer() {
                     }
                 });
                 break;
+            case '/api/v1/session':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/html"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/api/v1/login':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/html"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break;
+            case '/api/v1/signUp':
+                fs.readFile(__dirname + path, function(error, data){
+                    if(error){
+                        response.writeHead(404);
+                        response.write("The page doesn't exist - 404");
+                        response.end;
+                    }
+                    else{
+                        response.writeHead(200, {"Content-Type":"text/html"});
+                        response.write(data, "utf8");
+                        response.end();
+                    }
+                });
+                break
             default:
                 response.writeHead(404);
                 response.write("The page doesn't exist - 404");
