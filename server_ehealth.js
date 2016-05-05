@@ -719,13 +719,18 @@ function LoginToPlatform(credentials) {
     connection.connect();
 
     var query =
-        'SELECT serialnumber, password FROM users WHERE serialnumber=\''+ credentials.serialNumber + '\'';
+        'SELECT serialnumber, password, name, ' +
+        'surname FROM users WHERE serialnumber=\''+ credentials.serialNumber + '\'';
 
     connection.query(query, function (err, rows, fields) {
         if(err) throw err;
 
         if(VerifyPassword(credentials.pass, rows[0].password)){
-            listener.sockets.emit('correct credentials', {data: 'ok'});
+            listener.sockets.emit('correct credentials', {
+                                                serial: rows[0].serialnumber,
+                                                name: rows[0].name,
+                                                surname: rows[0].surname
+            });
         }
         else listener.sockets.emit('wrong credentials', {data: 'failed'});
     });

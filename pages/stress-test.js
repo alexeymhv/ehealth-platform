@@ -47,6 +47,9 @@ app.controller('stressTestCtrl', function($scope, $rootScope, $routeParams, $loc
         $scope.collapsible = false;
         $scope.maximizable = false;
 
+        $scope.user = webStorage.get('user_name') + ' ' + webStorage.get('user_surname');
+        $scope.serial = webStorage.get('device_serialnumber');
+
         $scope.$on('adfDashboardChanged', function (event, name, model){
             localStorageService.set(name, model);
         });

@@ -1,14 +1,16 @@
 <div class="row">
-    <div class="col-sm-3">
-        <h4 class="header blue lighter bigger">
-            <i class="icon-coffee green"></i>
-            User Authenticated
-        </h4>
-        <p>User: {{user}}</p>
-        <p>Serial Number: {{serial}}</p>
-        <button type="submit" class="width-35 pull-left btn btn-sm btn-primary" ng-click="doLogout()">
-            Logout
-        </button>
+    <div class="col-sm-9">
+        <div class="row">
+            <div class="col-xs-12 col-sm-8">
+                <h2>{{user}}</h2>
+                <p><strong>Serial Number:</strong>
+                    <span class="text-primary">{{serial}}</span>
+                </p>
+                <button type="button" class="pull-left btn btn-danger" ng-click="doLogout()">
+                    Logout
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
