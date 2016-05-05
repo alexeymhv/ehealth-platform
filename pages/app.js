@@ -27,32 +27,9 @@ app.config(function (dashboardProvider, $routeProvider, localStorageServiceProvi
             title: 'Stress-test',
             templateUrl: 'partials/stress-test.html',
             controller: 'stressTestCtrl',
-            resolve: {
-
-            }
         })
     .otherwise({
         redirectTo: '/login'
-    });
-
-
-});
-
-
-
-app.run(function ($rootScope, $location, webStorage) {
-    $rootScope.$on("$routeChangeStart", function (event, next, current) {
-        $rootScope.authenticated = false;
-            if (webStorage.get('login')) {
-                $rootScope.authenticated = true;
-            } else {
-                var nextUrl = next.$$route.originalPath;
-                if (nextUrl == '/signup' || nextUrl == '/login') {
-
-                } else {
-                    $location.path("/login");
-                }
-            }
     });
 });
 

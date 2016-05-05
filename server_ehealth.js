@@ -10,6 +10,7 @@ var EEG_SMT_WIDGET_CONNECTED_INFO = "EEG-SMT widget connected to platform";
 var PULSE_DATA_TO_DB_INFO = "Pulse data was written to database";
 var ACCELEROMETER_DATA_TO_DB_INFO = "Accelerometer data was written to database";
 var GSR_DATA_TO_DB_INFO = "GSR data was written to database";
+var WIDGETS_DISCONNECTED_INFO = "All widgets were disconnected";
 
 var http = require('http');
 var url = require('url');
@@ -167,6 +168,16 @@ listener.sockets.on('connection', function(socket) {
         listener.sockets.emit('serial number', {serialNumber: ARDUINO_SERIAL_NUMBER});
         console.log(data);
     })
+
+    socket.on('logout', function(data){
+        vbpmspoWidgetIsConnected = false;
+        rpmWidgetIsConnected = false;
+        bpmChartWidgetIsConnected = false;
+        rpmAccelWidgetIsConnected = false;
+        gsrWidgetIsConnected = false;
+        eegSmtWidgetIsConnected = false;
+        WriteServerLogs("INFO", WIDGETS_DISCONNECTED_INFO);
+    });
 });
 
 
@@ -890,7 +901,6 @@ function LaunchHTTPServer() {
                     }
                 });
                 break;
-
 
             case '/pages/directives.js':
                 fs.readFile(__dirname + path, function(error, data){
