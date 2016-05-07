@@ -1,0 +1,11 @@
+<div ng-controller="rpmController">
+  <div ng-if="!chartConfig">
+      <h1>Loading...</h1>
+  </div>
+  <div ng-if="chartConfig">
+      <highchart id="chart1" config="chartConfig"></highchart>
+  </div>
+  <div>
+      <h3>Frequency: {{rpm.frequency}}</h3>
+  </div>
+</div>

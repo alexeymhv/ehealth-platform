@@ -1,0 +1,2 @@
+docker build -t datacontainer .
+docker run --name opentsdb-data -v /opt/opentsdb-data:/opt/ datacontainer

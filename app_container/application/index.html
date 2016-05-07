@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="E-Health platform's dashboard">
+        <meta name="author" content="Aleksejs Mihailovs">
+
+        <title>e-Health Platform</title>
+        <link href="bower_components/adf-widget-clock/dist/adf-widget-clock.min.css" rel="stylesheet">
+        <link href="bower_components/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
+        <link href="bower_components/AngularJS-Toaster/toaster.css" rel="stylesheet">
+        <link href="bower_components/angular-dashboard-framework/dist/angular-dashboard-framework.min.css" rel="stylesheet">
+        <style type="text/css">
+            body {
+                padding-top: 60px;
+            }
+            .modal-backdrop {
+                bottom: 0;
+                position: fixed;
+            }
+        </style>
+    </head>
+
+    <body ng-app="sample">
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand" style="font-size:35px;" href="#/stress-test">
+                        <img style="width:35px; height:35px; display:inline" src="./images/cardiogram-main-title.png" alt="Cardio-main-title">
+                        e-Health Platform
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div ng-view />
+            <!--<div data-ng-view="" id="ng-view" class="slide-animation"></div>-->
+        </div>
+    </body>
+    <toaster-container toaster-options="{'time-out': 3000}"></toaster-container>
+
+    <script type="text/javascript" src="bower_components/angular/angular.js"></script>
+    <script type="text/javascript" src="bower_components/angular-webstorage/angular-webstorage.min.js"></script>
+    <script type="text/javascript" src="bower_components/AngularJS-Toaster/toaster.js"></script>
+    <script type="text/javascript" src="bower_components/angular-animate/angular-animate.js"></script>
+    <script type="text/javascript" src="bower_components/angular-route/angular-route.min.js"></script>
+    <script type="text/javascript" src="bower_components/Sortable/Sortable.js"></script>
+    <script type="text/javascript" src="bower_components/angular-bootstrap/ui-bootstrap.js"></script>
+    <script type="text/javascript" src="bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
+    <script type="text/javascript" src="bower_components/angular-dashboard-framework/dist/angular-dashboard-framework.js"></script>
+    <script type="text/javascript" src="bower_components/adf-structures-base/dist/adf-structures-base.min.js"></script>
+    <script type="text/javascript" src="bower_components/moment/moment.js"></script>
+    <script type="text/javascript" src="bower_components/highcharts/adapters/standalone-framework.src.js"></script>
+    <script type="text/javascript" src="bower_components/highcharts/highcharts.js"></script>
+    <script type="text/javascript" src="bower_components/highcharts-ng/dist/highcharts-ng.js"></script>
+    <script type="text/javascript" src="bower_components/adf-widget-clock/dist/adf-widget-clock.js"></script>
+    <script type="text/javascript" src="bower_components/adf-widget-bpmspo/dist/adf-widget-bpmspo.min.js"></script>
+    <script type="text/javascript" src="bower_components/adf-widget-rpm/dist/adf-widget-rpmsensor.min.js"></script>
+    <script type="text/javascript" src="bower_components/adf-widget-bpmchart/dist/adf-widget-bpmchart.min.js"></script>
+    <script type="text/javascript" src="bower_components/angular-local-storage/dist/angular-local-storage.min.js"></script>
+    <script type="text/javascript" src="bower_components/adf-widget-rpmaccel/dist/adf-widget-rpmaccel.min.js"></script>
+    <script type="text/javascript" src="bower_components/adf-widget-gsr/dist/adf-widget-gsr.min.js"></script>
+    <script type="text/javascript" src="bower_components/adf-widget-eegsmt/dist/adf-widget-eegsmt.min.js"></script>
+    <!--Pages-->
+    <script src="pages/app.js"></script>
+    <script src="pages/stress-test.js"></script>
+    <script src="pages/authCtrl.js"></script>
+    <script src="pages/data.js"></script>
+    <script src="pages/directives.js"></script>
+    <script src="pages/socket.js"></script>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.1.js"></script>
+</html>
