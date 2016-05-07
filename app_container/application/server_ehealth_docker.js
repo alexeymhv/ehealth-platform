@@ -395,7 +395,7 @@ function FetchPulseMetricsFromDB(isConnected, timePeriod) {
         var valArr = new Array();
 
         var mQuery = opentsdb.mquery();
-        mQuery.aggregator( 'none' );
+        mQuery.aggregator( 'avg' );
         mQuery.tags( 'tag', 'pulse' );
         mQuery.metric( 'pulsometer.data' );
 
@@ -412,11 +412,13 @@ function FetchPulseMetricsFromDB(isConnected, timePeriod) {
                 return;
             }
             else{
-                for(i=0; i<data[0].dps.length; i++){
-                    valArr.push(data[0].dps[i][0].toString());
-                    valArr.push(data[0].dps[i][1].toString());
+                if(data.length > 0){
+                    for(i=0; i<data[0].dps.length; i++){
+                        valArr.push(data[0].dps[i][0].toString());
+                        valArr.push(data[0].dps[i][1].toString());
+                    }
+                    listener.sockets.emit('bpmchart data', valArr);
                 }
-                listener.sockets.emit('bpmchart data', valArr);
             }
         });
 
@@ -430,7 +432,7 @@ function FetchRespAccelMetricsFromDB(isConnected, timePeriod) {
         var valArr = new Array();
 
         var mQuery = opentsdb.mquery();
-        mQuery.aggregator( 'none' );
+        mQuery.aggregator( 'avg' );
         mQuery.tags( 'tag', 'axis_accel' );
         mQuery.metric( ACCELEROMETER_DB_NAME );
 
@@ -447,11 +449,13 @@ function FetchRespAccelMetricsFromDB(isConnected, timePeriod) {
                 return;
             }
             else{
-                for(i=0; i<data[0].dps.length; i++){
-                    valArr.push(data[0].dps[i][0].toString());
-                    valArr.push(data[0].dps[i][1].toString());
+                if(data.length > 0){
+                    for(i=0; i<data[0].dps.length; i++){
+                        valArr.push(data[0].dps[i][0].toString());
+                        valArr.push(data[0].dps[i][1].toString());
+                    }
+                    listener.sockets.emit('rpmAcc data', valArr);
                 }
-                listener.sockets.emit('rpmAcc data', valArr);
             }
         });
 
@@ -467,7 +471,7 @@ function FetchGsrMetricsFromDB(isConnected, timePeriod) {
         var dataArr = new Array(2);
 
         var mQuery = opentsdb.mquery();
-        mQuery.aggregator( 'none' );
+        mQuery.aggregator( 'avg' );
         mQuery.tags( 'tag', 'avg_conductance' );
         mQuery.metric( GSR_DB_NAME );
 
@@ -484,39 +488,41 @@ function FetchGsrMetricsFromDB(isConnected, timePeriod) {
                 return;
             }
             else{
-                for (i = 0; i < data[0].dps.length; i++) {
-                    valArr1.push(data[0].dps[i][0].toString());
-                    valArr1.push(data[0].dps[i][1].toString());
-                }
-                dataArr[0] = valArr1;
-
-                var mQuery2 = opentsdb.mquery();
-                mQuery2.aggregator( 'none' );
-                mQuery2.tags( 'tag', 'avg_resistance' );
-                mQuery2.metric( GSR_DB_NAME );
-
-                var date = new Date();
-                var current_time = parseInt(date.getTime()/1000);
-
-                tmpdbClient.start( convertTime(current_time-timePeriod) );
-                tmpdbClient.end( convertTime(current_time) );
-                tmpdbClient.queries(mQuery2);
-
-                tmpdbClient.get( function onData(error, data){
-                    if(error){
-                        console.error(JSON.stringify(error));
-                        return;
+                if(data.length > 0){
+                    for (i = 0; i < data[0].dps.length; i++) {
+                        valArr1.push(data[0].dps[i][0].toString());
+                        valArr1.push(data[0].dps[i][1].toString());
                     }
-                    else{
-                        for (i = 0; i < data[0].dps.length; i++) {
-                            valArr2.push(data[0].dps[i][0].toString());
-                            valArr2.push(data[0].dps[i][1].toString());
+                    dataArr[0] = valArr1;
+
+                    var mQuery2 = opentsdb.mquery();
+                    mQuery2.aggregator( 'avg' );
+                    mQuery2.tags( 'tag', 'avg_resistance' );
+                    mQuery2.metric( GSR_DB_NAME );
+
+                    var date = new Date();
+                    var current_time = parseInt(date.getTime()/1000);
+
+                    tmpdbClient.start( convertTime(current_time-timePeriod) );
+                    tmpdbClient.end( convertTime(current_time) );
+                    tmpdbClient.queries(mQuery2);
+
+                    tmpdbClient.get( function onData(error, data){
+                        if(error){
+                            console.error(JSON.stringify(error));
+                            return;
                         }
-                        dataArr[1] = valArr2;
+                        else{
+                            for (i = 0; i < data[0].dps.length; i++) {
+                                valArr2.push(data[0].dps[i][0].toString());
+                                valArr2.push(data[0].dps[i][1].toString());
+                            }
+                            dataArr[1] = valArr2;
 
-                        listener.sockets.emit('gsr data', dataArr);
-                    }
-                });
+                            listener.sockets.emit('gsr data', dataArr);
+                        }
+                    });
+                }
             }
         });
     }
@@ -527,7 +533,7 @@ function FetchGsrMetricsFromDB(isConnected, timePeriod) {
 function FetchEegSmtMetricsFromDB(isConnected) {
     if(isConnected){
         var mQuery = opentsdb.mquery();
-        mQuery.aggregator( 'none' );
+        mQuery.aggregator( 'avg' );
         mQuery.tags( 'tag', '*' );
         mQuery.metric( EEGSMT_DB_NAME );
 
@@ -546,14 +552,16 @@ function FetchEegSmtMetricsFromDB(isConnected) {
                 return;
             }
 
-            data.toString();
+            if(data.length > 0){
+                data.toString();
 
-            for(i=0; i<data[0].dps.length; i++){
-                valArr.push(data[0].dps[i][0].toString());
-                valArr.push(data[0].dps[i][1].toString());
-            }
+                for(i=0; i<data[0].dps.length; i++){
+                    valArr.push(data[0].dps[i][0].toString());
+                    valArr.push(data[0].dps[i][1].toString());
+                }
 
-            listener.sockets.emit('eegsmt data', {'message':valArr});
+                listener.sockets.emit('eegsmt data', {'message':valArr});
+            }      
 
             valArr.length = 0;
 
@@ -755,7 +763,11 @@ function RegisterNewDevice(data) {
                 if(err) throw err;
 
                 if(result.affectedRows == 1)
-                    listener.sockets.emit('device registered', {data: 'ok'});
+                    listener.sockets.emit('device registered', {
+                        serial: data.serialNumber,
+                        name: data.name,
+                        surname: data.surname
+                    });
             });
 
             connection.end();

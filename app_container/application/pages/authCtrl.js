@@ -55,6 +55,10 @@ app.controller('authCtrl',
         });
 
         socket.on('device registered', function(data){
+            webStorage.set('login', 'true');
+            webStorage.set('device_serialnumber', data.serial);
+            webStorage.set('user_name', data.name);
+            webStorage.set('user_surname', data.surname);
             toaster.pop('success', "Device has been registered!", "Welcome to e-Health dashboard!", 10000);
             $location.path('/stress-test');
         });

@@ -55,12 +55,19 @@ app.controller('stressTestCtrl', function($scope, $rootScope, $routeParams, $loc
         });
 
         $scope.doLogout = function () {
-            webStorage.set('login', 'false');
+            ClearWebStorage();
             socket.emit('logout', 'Stop sending data from serial port!')
             $location.path('/login');
         };
     }
     else{
         $location.path('/login');
+    }
+
+    function ClearWebStorage(){
+        webStorage.set('login', 'false');
+        webStorage.set('device_serialnumber', '');
+        webStorage.set('user_name', '');
+        webStorage.set('user_surname', '');
     }
 });

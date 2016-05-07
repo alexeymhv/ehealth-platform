@@ -76,7 +76,7 @@ app.controller('bpmchController', function($scope, $interval, socket) {
           text: 'Pulse'
         },
         tickPixelInterval: 10,
-        max: 90,
+        max: 12,
         min: 40
       },
       series: [{

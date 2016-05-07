@@ -17,7 +17,8 @@ RUN cd /opt/ehealth-platform && npm install opentsdb-query@0.0.2 \
  		fft-js \
 		socket.io \
 		mysql	  \
-		password-hash
+		password-hash \
+		date-now
 
 ADD application/ /opt/ehealth-platform
 

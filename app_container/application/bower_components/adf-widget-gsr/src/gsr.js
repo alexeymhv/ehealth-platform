@@ -89,7 +89,7 @@ app.controller('gsrController', function($scope, $interval, socket) {
       }]
     };
 
-    $scope.$digest();
+    //$scope.$digest();
 
   });
 
