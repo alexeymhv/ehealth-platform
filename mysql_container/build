@@ -1,1 +1,5 @@
-docker build -t mysqldb .
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+docker build -t mysqldb $DIR/.
