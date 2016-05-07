@@ -1,2 +1,2 @@
 docker rm -f opentsdb
-docker run -d -it --net=host --name opentsdb -p 127.0.0.1:4242:4242 opentsdb
+docker run -d -it --net=host -v ~/application_data/ehealth/opentsdb_data:/data/hbase/hbaseroot/hbase --name opentsdb -p 127.0.0.1:4242:4242 opentsdb

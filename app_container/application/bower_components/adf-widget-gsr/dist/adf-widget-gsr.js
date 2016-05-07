@@ -43,7 +43,8 @@ app.controller('gsrController', ["$scope", "$interval", "socket", function($scop
       options: {
         chart: {
           animation: false,
-          zoomType: 'x'
+          zoomType: 'x',
+          renderTo: 'container'
         },
         title: {
           text: 'Live GSR'
@@ -58,7 +59,8 @@ app.controller('gsrController', ["$scope", "$interval", "socket", function($scop
             }
           },
           series: {
-            turboThreshold: 10000
+            turboThreshold: 10000,
+            animation: false
           }
         },
         xAxis: {
@@ -89,8 +91,8 @@ app.controller('gsrController', ["$scope", "$interval", "socket", function($scop
         data: resistanceArray
       }]
     };
-
-    //$scope.$digest();
+    
+    $scope.$digest();
 
   });
 
