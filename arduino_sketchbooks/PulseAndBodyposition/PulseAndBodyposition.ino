@@ -3,7 +3,6 @@
 #include <Wire.h>
 #include <SparkFun_MMA8452Q.h> 
 #include <stdlib.h>
-#include<Math.h>
 
 int cont = 0;
 

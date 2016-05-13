@@ -25,10 +25,6 @@ var GSR_DB_NAME = 'gsr.data';
 var EEGSMT_DB_NAME = 'eeg.data';
 //-----------------------------------------------------------//
 
-
-//**Initialising HBase Tables**//
-InitHBaseTables(PATH_TO_OPENTSDB);
-
 //**Initialising opentsdb socket**//
 var createSocket = require( 'opentsdb-socket' );
 var socket = createSocket();
@@ -52,7 +48,6 @@ var portName = '/dev/ttyACM0';
 var ARDUINO_SERIAL_NUMBER = process.env.ARDUINO_SERIAL_NUMBER;	
 
 //**Initialising connection to opentsdb**//
-//TODO Check if there is a connection to port
 var connection = new SerialPort(portName, {
     baudRate:115200,
     parser:serialport.parsers.readline("\n")
@@ -110,7 +105,6 @@ var canstart = false;
 var timerId = setInterval(function(){
     if(canstart) {
         if(bpmChartWidgetIsConnected){
-            //--Shows pulse history for last 5 minutes (300 sec)--//
             FetchPulseMetricsFromDB(bpmChartWidgetIsConnected, timePeriod_pulse);
 
             if(timePeriod_pulse != 300 && timePeriodHelper_pulse == timePeriod_pulse)
@@ -234,15 +228,6 @@ connection.on('data', function(data){
         SendGsrData(gsrWidgetIsConnected, data);
     }
 });
-
-function CreateOpenTsdbTable(pathToOpenTSDB, tableName){
-    //**Variables to execute shell script**//
-//    var exec = require('child_process').exec;
-
-//    //**It passes table name to the shell script stored in local directory.**//
-//    var command = "./scripts/create_opentsdb_metrics.sh " + pathToOpenTSDB + " " + tableName;
-//    exec(command);
-}
 
 //**Creating tables for different sensor's metrics**/
 function InitHBaseTables(pathToOpenTSDB){
@@ -580,10 +565,6 @@ function SendPulseSpoData(isConnected, data) {
         return;
 }
 
-//TODO Pacienta Ielogosanas (PID/ Katram sava ierice)
-//TODO MySQL DB - Pacienti, Ierices(Cik sensoru un t.t.), Organization
-//TODO Script for Automated Deployment
-
 function SendRespiratoryRateData(isConnected, data){
     if(isConnected){
         rpmArray[rpmCounter] = parseFloat(GetPositionArray(data)[2]);
@@ -828,7 +809,7 @@ function LaunchHTTPServer() {
                 response.write('You are on your way to e-Health Platform');
                 response.end();
                 break;
-            case '/index.html':
+            case '/ehealth-platform.html':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
                         response.writeHead(404);

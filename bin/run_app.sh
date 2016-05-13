@@ -5,4 +5,5 @@ node $DIR/../scripts/get_serialnumber.js
 serialnumber=$(<$DIR/../conf/serialnumber)
 echo $serialnumber
 
-$DIR/run_container $serialnumber
+docker rm -f ehealth_platform
+docker run --name ehealth_platform --net=host -it --privileged -d -p 127.0.1.1:3000:3000 -v /dev/ttyACM0:/dev/ttyACM0 -e "ARDUINO_SERIAL_NUMBER=$serialnumber" ehealth-platform
