@@ -25,10 +25,6 @@ var GSR_DB_NAME = 'gsr.data';
 var EEGSMT_DB_NAME = 'eeg.data';
 //-----------------------------------------------------------//
 
-
-//**Initialising HBase Tables**//
-InitHBaseTables(PATH_TO_OPENTSDB);
-
 //**Initialising opentsdb socket**//
 var createSocket = require( 'opentsdb-socket' );
 var socket = createSocket();
@@ -49,21 +45,9 @@ tmpdbClient.port( 4242 );
 var serialport = require('serialport');
 var SerialPort = serialport.SerialPort;
 var portName = '/dev/ttyACM0';
-var ARDUINO_SERIAL_NUMBER = "";
-
-serialport.list(function (err, ports) {
-    ports.forEach(function(port) {
-        if(port.comName == portName){
-        	ARDUINO_SERIAL_NUMBER = port.serialNumber.toString();
-		console.log(ARDUINO_SERIAL_NUMBER);
- 	}
-            //ARDUINO_SERIAL_NUMBER = port.serialNumber;
-	    //console.log(ARDUINO_SERIAL_NUMBER);
-    });
-});
+var ARDUINO_SERIAL_NUMBER = process.env.ARDUINO_SERIAL_NUMBER;	
 
 //**Initialising connection to opentsdb**//
-//TODO Check if there is a connection to port
 var connection = new SerialPort(portName, {
     baudRate:115200,
     parser:serialport.parsers.readline("\n")
@@ -121,7 +105,6 @@ var canstart = false;
 var timerId = setInterval(function(){
     if(canstart) {
         if(bpmChartWidgetIsConnected){
-            //--Shows pulse history for last 5 minutes (300 sec)--//
             FetchPulseMetricsFromDB(bpmChartWidgetIsConnected, timePeriod_pulse);
 
             if(timePeriod_pulse != 300 && timePeriodHelper_pulse == timePeriod_pulse)
@@ -245,15 +228,6 @@ connection.on('data', function(data){
         SendGsrData(gsrWidgetIsConnected, data);
     }
 });
-
-function CreateOpenTsdbTable(pathToOpenTSDB, tableName){
-    //**Variables to execute shell script**//
-//    var exec = require('child_process').exec;
-
-//    //**It passes table name to the shell script stored in local directory.**//
-//    var command = "./scripts/create_opentsdb_metrics.sh " + pathToOpenTSDB + " " + tableName;
-//    exec(command);
-}
 
 //**Creating tables for different sensor's metrics**/
 function InitHBaseTables(pathToOpenTSDB){
@@ -406,7 +380,7 @@ function FetchPulseMetricsFromDB(isConnected, timePeriod) {
         var valArr = new Array();
 
         var mQuery = opentsdb.mquery();
-        mQuery.aggregator( 'none' );
+        mQuery.aggregator( 'avg' );
         mQuery.tags( 'tag', 'pulse' );
         mQuery.metric( 'pulsometer.data' );
 
@@ -423,11 +397,13 @@ function FetchPulseMetricsFromDB(isConnected, timePeriod) {
                 return;
             }
             else{
-                for(i=0; i<data[0].dps.length; i++){
-                    valArr.push(data[0].dps[i][0].toString());
-                    valArr.push(data[0].dps[i][1].toString());
+                if(data.length > 0){
+                    for(i=0; i<data[0].dps.length; i++){
+                        valArr.push(data[0].dps[i][0].toString());
+                        valArr.push(data[0].dps[i][1].toString());
+                    }
+                    listener.sockets.emit('bpmchart data', valArr);
                 }
-                listener.sockets.emit('bpmchart data', valArr);
             }
         });
 
@@ -441,7 +417,7 @@ function FetchRespAccelMetricsFromDB(isConnected, timePeriod) {
         var valArr = new Array();
 
         var mQuery = opentsdb.mquery();
-        mQuery.aggregator( 'none' );
+        mQuery.aggregator( 'avg' );
         mQuery.tags( 'tag', 'axis_accel' );
         mQuery.metric( ACCELEROMETER_DB_NAME );
 
@@ -458,11 +434,13 @@ function FetchRespAccelMetricsFromDB(isConnected, timePeriod) {
                 return;
             }
             else{
-                for(i=0; i<data[0].dps.length; i++){
-                    valArr.push(data[0].dps[i][0].toString());
-                    valArr.push(data[0].dps[i][1].toString());
+                if(data.length > 0){
+                    for(i=0; i<data[0].dps.length; i++){
+                        valArr.push(data[0].dps[i][0].toString());
+                        valArr.push(data[0].dps[i][1].toString());
+                    }
+                    listener.sockets.emit('rpmAcc data', valArr);
                 }
-                listener.sockets.emit('rpmAcc data', valArr);
             }
         });
 
@@ -478,7 +456,7 @@ function FetchGsrMetricsFromDB(isConnected, timePeriod) {
         var dataArr = new Array(2);
 
         var mQuery = opentsdb.mquery();
-        mQuery.aggregator( 'none' );
+        mQuery.aggregator( 'avg' );
         mQuery.tags( 'tag', 'avg_conductance' );
         mQuery.metric( GSR_DB_NAME );
 
@@ -495,39 +473,41 @@ function FetchGsrMetricsFromDB(isConnected, timePeriod) {
                 return;
             }
             else{
-                for (i = 0; i < data[0].dps.length; i++) {
-                    valArr1.push(data[0].dps[i][0].toString());
-                    valArr1.push(data[0].dps[i][1].toString());
-                }
-                dataArr[0] = valArr1;
-
-                var mQuery2 = opentsdb.mquery();
-                mQuery2.aggregator( 'none' );
-                mQuery2.tags( 'tag', 'avg_resistance' );
-                mQuery2.metric( GSR_DB_NAME );
-
-                var date = new Date();
-                var current_time = parseInt(date.getTime()/1000);
-
-                tmpdbClient.start( convertTime(current_time-timePeriod) );
-                tmpdbClient.end( convertTime(current_time) );
-                tmpdbClient.queries(mQuery2);
-
-                tmpdbClient.get( function onData(error, data){
-                    if(error){
-                        console.error(JSON.stringify(error));
-                        return;
+                if(data.length > 0){
+                    for (i = 0; i < data[0].dps.length; i++) {
+                        valArr1.push(data[0].dps[i][0].toString());
+                        valArr1.push(data[0].dps[i][1].toString());
                     }
-                    else{
-                        for (i = 0; i < data[0].dps.length; i++) {
-                            valArr2.push(data[0].dps[i][0].toString());
-                            valArr2.push(data[0].dps[i][1].toString());
+                    dataArr[0] = valArr1;
+
+                    var mQuery2 = opentsdb.mquery();
+                    mQuery2.aggregator( 'avg' );
+                    mQuery2.tags( 'tag', 'avg_resistance' );
+                    mQuery2.metric( GSR_DB_NAME );
+
+                    var date = new Date();
+                    var current_time = parseInt(date.getTime()/1000);
+
+                    tmpdbClient.start( convertTime(current_time-timePeriod) );
+                    tmpdbClient.end( convertTime(current_time) );
+                    tmpdbClient.queries(mQuery2);
+
+                    tmpdbClient.get( function onData(error, data){
+                        if(error){
+                            console.error(JSON.stringify(error));
+                            return;
                         }
-                        dataArr[1] = valArr2;
+                        else{
+                            for (i = 0; i < data[0].dps.length; i++) {
+                                valArr2.push(data[0].dps[i][0].toString());
+                                valArr2.push(data[0].dps[i][1].toString());
+                            }
+                            dataArr[1] = valArr2;
 
-                        listener.sockets.emit('gsr data', dataArr);
-                    }
-                });
+                            listener.sockets.emit('gsr data', dataArr);
+                        }
+                    });
+                }
             }
         });
     }
@@ -538,7 +518,7 @@ function FetchGsrMetricsFromDB(isConnected, timePeriod) {
 function FetchEegSmtMetricsFromDB(isConnected) {
     if(isConnected){
         var mQuery = opentsdb.mquery();
-        mQuery.aggregator( 'none' );
+        mQuery.aggregator( 'avg' );
         mQuery.tags( 'tag', '*' );
         mQuery.metric( EEGSMT_DB_NAME );
 
@@ -557,14 +537,16 @@ function FetchEegSmtMetricsFromDB(isConnected) {
                 return;
             }
 
-            data.toString();
+            if(data.length > 0){
+                data.toString();
 
-            for(i=0; i<data[0].dps.length; i++){
-                valArr.push(data[0].dps[i][0].toString());
-                valArr.push(data[0].dps[i][1].toString());
-            }
+                for(i=0; i<data[0].dps.length; i++){
+                    valArr.push(data[0].dps[i][0].toString());
+                    valArr.push(data[0].dps[i][1].toString());
+                }
 
-            listener.sockets.emit('eegsmt data', {'message':valArr});
+                listener.sockets.emit('eegsmt data', {'message':valArr});
+            }      
 
             valArr.length = 0;
 
@@ -582,10 +564,6 @@ function SendPulseSpoData(isConnected, data) {
     else
         return;
 }
-
-//TODO Pacienta Ielogosanas (PID/ Katram sava ierice)
-//TODO MySQL DB - Pacienti, Ierices(Cik sensoru un t.t.), Organization
-//TODO Script for Automated Deployment
 
 function SendRespiratoryRateData(isConnected, data){
     if(isConnected){
@@ -728,15 +706,16 @@ function LoginToPlatform(credentials) {
 
     connection.query(query, function (err, rows, fields) {
         if(err) throw err;
-
-        if(VerifyPassword(credentials.pass, rows[0].password)){
-            listener.sockets.emit('correct credentials', {
-                                                serial: rows[0].serialnumber,
-                                                name: rows[0].name,
-                                                surname: rows[0].surname
-            });
+        if(rows.length > 0){
+            if(VerifyPassword(credentials.pass, rows[0].password)){
+                listener.sockets.emit('correct credentials', {
+                                                    serial: rows[0].serialnumber,
+                                                    name: rows[0].name,
+                                                    surname: rows[0].surname
+                });
+            }
+            else listener.sockets.emit('wrong credentials', {data: 'failed'});
         }
-        else listener.sockets.emit('wrong credentials', {data: 'failed'});
     });
 
     connection.end();
@@ -745,7 +724,7 @@ function LoginToPlatform(credentials) {
 function RegisterNewDevice(data) {
     var mysql = require('mysql');
     var connection = mysql.createConnection({
-        host: 'localhost',
+        host: '127.0.0.2',
         user: 'root',
         password: 'rootpass',
         database: 'ehealth'
@@ -765,7 +744,11 @@ function RegisterNewDevice(data) {
                 if(err) throw err;
 
                 if(result.affectedRows == 1)
-                    listener.sockets.emit('device registered', {data: 'ok'});
+                    listener.sockets.emit('device registered', {
+                        serial: data.serialNumber,
+                        name: data.name,
+                        surname: data.surname
+                    });
             });
 
             connection.end();
@@ -779,7 +762,7 @@ function RegisterNewDevice(data) {
 function SerialNumberIsUnique(serialNumber, callback) {
     var mysql = require('mysql');
     var connection = mysql.createConnection({
-        host: 'localhost',
+        host: '127.0.0.2',
         user: 'root',
         password: 'rootpass',
         database: 'ehealth'
@@ -826,7 +809,7 @@ function LaunchHTTPServer() {
                 response.write('You are on your way to e-Health Platform');
                 response.end();
                 break;
-            case '/index.html':
+            case '/ehealth-platform.html':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
                         response.writeHead(404);
@@ -869,20 +852,6 @@ function LaunchHTTPServer() {
                 });
                 break;
             case '/pages/authCtrl.js':
-                fs.readFile(__dirname + path, function(error, data){
-                    if(error){
-                        response.writeHead(404);
-                        response.write("The page doesn't exist - 404");
-                        response.end;
-                    }
-                    else{
-                        response.writeHead(200, {"Content-Type":"text/javascript"});
-                        response.write(data, "utf8");
-                        response.end();
-                    }
-                });
-                break;
-            case '/pages/data.js':
                 fs.readFile(__dirname + path, function(error, data){
                     if(error){
                         response.writeHead(404);
@@ -1415,48 +1384,6 @@ function LaunchHTTPServer() {
                     }
                 });
                 break;
-            case '/api/v1/session':
-                fs.readFile(__dirname + path, function(error, data){
-                    if(error){
-                        response.writeHead(404);
-                        response.write("The page doesn't exist - 404");
-                        response.end;
-                    }
-                    else{
-                        response.writeHead(200, {"Content-Type":"text/html"});
-                        response.write(data, "utf8");
-                        response.end();
-                    }
-                });
-                break;
-            case '/api/v1/login':
-                fs.readFile(__dirname + path, function(error, data){
-                    if(error){
-                        response.writeHead(404);
-                        response.write("The page doesn't exist - 404");
-                        response.end;
-                    }
-                    else{
-                        response.writeHead(200, {"Content-Type":"text/html"});
-                        response.write(data, "utf8");
-                        response.end();
-                    }
-                });
-                break;
-            case '/api/v1/signUp':
-                fs.readFile(__dirname + path, function(error, data){
-                    if(error){
-                        response.writeHead(404);
-                        response.write("The page doesn't exist - 404");
-                        response.end;
-                    }
-                    else{
-                        response.writeHead(200, {"Content-Type":"text/html"});
-                        response.write(data, "utf8");
-                        response.end();
-                    }
-                });
-                break
             default:
                 response.writeHead(404);
                 response.write("The page doesn't exist - 404");
