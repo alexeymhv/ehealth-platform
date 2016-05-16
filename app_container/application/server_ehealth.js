@@ -18,7 +18,6 @@ var fs = require('fs');
 var io = require('socket.io', {forceNew: true});
 
 //----------------Defining opentsdb variables-----------------//
-var PATH_TO_OPENTSDB = "/home/aleksejs/opentsdb";
 var ACCELEROMETER_DB_NAME = 'accelerometer.data';
 var PULSOMETER_DB_NAME = 'pulsometer.data';
 var GSR_DB_NAME = 'gsr.data';
@@ -112,6 +111,11 @@ var timerId = setInterval(function(){
 
             if(timePeriodHelper_pulse != 300)
                 timePeriodHelper_pulse++;
+
+	    if(timePeriod_pulse == 300 && timePeriodHelper_pulse == 300){
+	        timePeriod_pulse = 10;
+	 	timePeriodHelper_pulse = 0;
+            }
         }
 
         if(rpmAccelWidgetIsConnected) {
@@ -122,6 +126,12 @@ var timerId = setInterval(function(){
 
             if(timePeriodHelper_accel != 300)
                 timePeriodHelper_accel++;
+
+	    if(timePeriod_accel == 300 && timePeriodHelper_accel == 300){
+                timePeriod_accel = 10;
+                timePeriodHelper_accel = 0;
+            }
+
         }
 
         if(gsrWidgetIsConnected) {
@@ -132,6 +142,11 @@ var timerId = setInterval(function(){
 
             if(timePeriodHelper_gsr != 300)
                 timePeriodHelper_gsr++;
+
+            if(timePeriod_gsr == 300 && timePeriodHelper_gsr == 300){
+                timePeriod_gsr = 10;
+                timePeriodHelper_gsr = 0;
+            }
         }
 
         if(eegSmtWidgetIsConnected) {
@@ -228,14 +243,6 @@ connection.on('data', function(data){
         SendGsrData(gsrWidgetIsConnected, data);
     }
 });
-
-//**Creating tables for different sensor's metrics**/
-function InitHBaseTables(pathToOpenTSDB){
-    CreateOpenTsdbTable(pathToOpenTSDB, ACCELEROMETER_DB_NAME);
-    CreateOpenTsdbTable(pathToOpenTSDB, PULSOMETER_DB_NAME);
-    CreateOpenTsdbTable(pathToOpenTSDB, GSR_DB_NAME);
-    CreateOpenTsdbTable(pathToOpenTSDB, EEGSMT_DB_NAME);
-}
 
 function GetPulseDataArray(data){
     var arr = data.split("|");
