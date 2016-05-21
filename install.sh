@@ -68,9 +68,17 @@ while true; do
                                 case $x in
                                 [1]* )
                                         mkdir /usr/tmp;
-                                        wget -O /usr/tmp/arduino-1.0.5-linux32.tgz http://arduino.googlecode.com/files/arduino-1.0.5-linux32.tgz;
-                                        tar -xvf /usr/tmp/arduino-1.0.5-linux32.tgz -C /opt/;
-                                        rm -rf /usr/tmp/arduino-1.0.5-linux32.tgz;
+                                        wget -O /usr/tmp/arduino-1.6.9-linux32.tgz http://arduino.googlecode.com/files/arduino-1.6.9-linux32.tgz;
+                                        tar -xvf /usr/tmp/arduino-1.6.9-linux32.tgz -C /opt/;
+                                        rm -rf /usr/tmp/arduino-1.6.9-linux32.tgz;
+					
+					mkdir /root/Arduino /root/Arduino/libraries;
+                                        cp -r $DIR/arduino_sketchbooks/eHealth /root/Arduino/libraries/;
+                                        cp -r $DIR/arduino_sketchbooks/PinChangeInt /root/Arduino/libraries/;
+                                        cp -r $DIR/arduino_sketchbooks/MMA8452_Accelerometer /root/Arduino/libraries/;
+                                        cp -r $DIR/arduino_sketchbooks/PulseAndBodyposition /root/Arduino/;
+                                        /opt/arduino-1.6.9/arduino --port '/dev/ttyACM0'
+                                        /opt/arduino-1.6.9/arduino --upload /root/Arduino/PulseAndBodyposition/PulseAndBodyposition.ino;
                                 break;;
                                 [2]* )
                                         mkdir /usr/tmp;
