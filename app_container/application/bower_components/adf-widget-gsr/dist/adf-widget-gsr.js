@@ -81,7 +81,7 @@ app.controller('gsrController', ["$scope", "$interval", "socket", function($scop
         ]
       },
       series:[{
-        name: 'Conductance / usV',
+        name: 'Conductance / uS',
         yAxis: 1,
         type: 'line',
         data: conductanceArray
